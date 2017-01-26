@@ -1,7 +1,5 @@
 package killmailscraper
 
-import spray.json._
-import scalaj.http._
 import com.typesafe.scalalogging._
 
 

@@ -4,7 +4,7 @@ import spray.json._
 import scalaj.http._
 
 class Scrape {
-  def getJson: JsValue = {
+  private def getJson: JsValue = {
     val rawResp: HttpResponse[String] = Http("https://redisq.zkillboard.com/listen.php").asString
     rawResp.body.parseJson
   }

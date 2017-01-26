@@ -85,3 +85,6 @@ fabric.properties
 # *.ipr
 
 # End of https://www.gitignore.io/api/scala,sbt,intellij
+
+# Env variables
+workspace.env

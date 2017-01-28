@@ -4,6 +4,7 @@ version := "1.0"
 
 scalaVersion := "2.12.1"
 
+mainClass in (Compile, run) := Some("killmailscraper.Package")
 
 resolvers += Resolver.jcenterRepo
 resolvers ++=
@@ -17,6 +18,7 @@ val slickVersion = "3.2.0-M2"
 
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
+  "ch.qos.logback" % "logback-classic" % "1.1.2",
   "com.typesafe.slick" %% "slick" % slickVersion,
   "com.typesafe.slick" %% "slick-codegen" % slickVersion,
   "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,

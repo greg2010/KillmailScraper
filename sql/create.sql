@@ -3,11 +3,11 @@ BEGIN;
   CREATE TABLE killmail(
     kill_id INT NOT NULL,
     ship_id INT NOT NULL,
-    character_id INT NOT NULL,
+    character_id INT,
     solarSystem_id INT NOT NULL,
     kill_time TIMESTAMP NOT NULL,
     attacker_count INT NOT NULL,
-    final_blow INT NOT NULL,
+    final_blow INT,
     position_x DOUBLE PRECISION NOT NULL,
     position_y DOUBLE PRECISION NOT NULL,
     position_z DOUBLE PRECISION NOT NULL,
@@ -18,9 +18,9 @@ BEGIN;
   CREATE TABLE attackers(
     kill_id INT NOT NULL,
     ship_id INT NOT NULL,
-    character_id INT NOT NULL,
+    character_id INT,
     weaponType_id INT NOT NULL,
-    damage_done INT NOT NULL,
+    damage_done BIGINT NOT NULL,
     security_status DOUBLE PRECISION NOT NULL,
     FOREIGN KEY (kill_id) REFERENCES killmail(kill_id)
   );

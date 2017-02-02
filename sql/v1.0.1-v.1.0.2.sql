@@ -1,0 +1,7 @@
+BEGIN;
+
+  ALTER TABLE killmail ALTER COLUMN final_blow DROP NOT NULL;
+  ALTER TABLE attackers ALTER COLUMN weapontype_id DROP NOT NULL;
+  ALTER TABLE attackers ALTER COLUMN ship_id DROP NOT NULL;
+
+COMMIT;

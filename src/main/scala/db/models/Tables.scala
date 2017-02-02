@@ -20,33 +20,33 @@ trait Tables {
 
   /** Entity class storing rows of table Attackers
    *  @param killId Database column kill_id SqlType(int4)
-   *  @param shipId Database column ship_id SqlType(int4)
-   *  @param characterId Database column character_id SqlType(int4)
-   *  @param weapontypeId Database column weapontype_id SqlType(int4)
-   *  @param damageDone Database column damage_done SqlType(int4)
+   *  @param shipId Database column ship_id SqlType(int4), Default(None)
+   *  @param characterId Database column character_id SqlType(int4), Default(None)
+   *  @param weapontypeId Database column weapontype_id SqlType(int4), Default(None)
+   *  @param damageDone Database column damage_done SqlType(int8)
    *  @param securityStatus Database column security_status SqlType(float8) */
-  case class AttackersRow(killId: Int, shipId: Int, characterId: Int, weapontypeId: Int, damageDone: Int, securityStatus: Double)
+  case class AttackersRow(killId: Int, shipId: Option[Int] = None, characterId: Option[Int] = None, weapontypeId: Option[Int] = None, damageDone: Long, securityStatus: Double)
   /** GetResult implicit for fetching AttackersRow objects using plain SQL queries */
-  implicit def GetResultAttackersRow(implicit e0: GR[Int], e1: GR[Double]): GR[AttackersRow] = GR{
+  implicit def GetResultAttackersRow(implicit e0: GR[Int], e1: GR[Option[Int]], e2: GR[Long], e3: GR[Double]): GR[AttackersRow] = GR{
     prs => import prs._
-    AttackersRow.tupled((<<[Int], <<[Int], <<[Int], <<[Int], <<[Int], <<[Double]))
+    AttackersRow.tupled((<<[Int], <<?[Int], <<?[Int], <<?[Int], <<[Long], <<[Double]))
   }
   /** Table description of table attackers. Objects of this class serve as prototypes for rows in queries. */
   class Attackers(_tableTag: Tag) extends profile.api.Table[AttackersRow](_tableTag, "attackers") {
     def * = (killId, shipId, characterId, weapontypeId, damageDone, securityStatus) <> (AttackersRow.tupled, AttackersRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(killId), Rep.Some(shipId), Rep.Some(characterId), Rep.Some(weapontypeId), Rep.Some(damageDone), Rep.Some(securityStatus)).shaped.<>({r=>import r._; _1.map(_=> AttackersRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(killId), shipId, characterId, weapontypeId, Rep.Some(damageDone), Rep.Some(securityStatus)).shaped.<>({r=>import r._; _1.map(_=> AttackersRow.tupled((_1.get, _2, _3, _4, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column kill_id SqlType(int4) */
     val killId: Rep[Int] = column[Int]("kill_id")
-    /** Database column ship_id SqlType(int4) */
-    val shipId: Rep[Int] = column[Int]("ship_id")
-    /** Database column character_id SqlType(int4) */
-    val characterId: Rep[Int] = column[Int]("character_id")
-    /** Database column weapontype_id SqlType(int4) */
-    val weapontypeId: Rep[Int] = column[Int]("weapontype_id")
-    /** Database column damage_done SqlType(int4) */
-    val damageDone: Rep[Int] = column[Int]("damage_done")
+    /** Database column ship_id SqlType(int4), Default(None) */
+    val shipId: Rep[Option[Int]] = column[Option[Int]]("ship_id", O.Default(None))
+    /** Database column character_id SqlType(int4), Default(None) */
+    val characterId: Rep[Option[Int]] = column[Option[Int]]("character_id", O.Default(None))
+    /** Database column weapontype_id SqlType(int4), Default(None) */
+    val weapontypeId: Rep[Option[Int]] = column[Option[Int]]("weapontype_id", O.Default(None))
+    /** Database column damage_done SqlType(int8) */
+    val damageDone: Rep[Long] = column[Long]("damage_done")
     /** Database column security_status SqlType(float8) */
     val securityStatus: Rep[Double] = column[Double]("security_status")
 
@@ -143,40 +143,40 @@ trait Tables {
   /** Entity class storing rows of table Killmail
    *  @param killId Database column kill_id SqlType(int4), PrimaryKey
    *  @param shipId Database column ship_id SqlType(int4)
-   *  @param characterId Database column character_id SqlType(int4)
+   *  @param characterId Database column character_id SqlType(int4), Default(None)
    *  @param solarsystemId Database column solarsystem_id SqlType(int4)
    *  @param killTime Database column kill_time SqlType(timestamp)
    *  @param attackerCount Database column attacker_count SqlType(int4)
-   *  @param finalBlow Database column final_blow SqlType(int4)
+   *  @param finalBlow Database column final_blow SqlType(int4), Default(None)
    *  @param positionX Database column position_x SqlType(float8)
    *  @param positionY Database column position_y SqlType(float8)
    *  @param positionZ Database column position_z SqlType(float8) */
-  case class KillmailRow(killId: Int, shipId: Int, characterId: Int, solarsystemId: Int, killTime: java.sql.Timestamp, attackerCount: Int, finalBlow: Int, positionX: Double, positionY: Double, positionZ: Double)
+  case class KillmailRow(killId: Int, shipId: Int, characterId: Option[Int] = None, solarsystemId: Int, killTime: java.sql.Timestamp, attackerCount: Int, finalBlow: Option[Int] = None, positionX: Double, positionY: Double, positionZ: Double)
   /** GetResult implicit for fetching KillmailRow objects using plain SQL queries */
-  implicit def GetResultKillmailRow(implicit e0: GR[Int], e1: GR[java.sql.Timestamp], e2: GR[Double]): GR[KillmailRow] = GR{
+  implicit def GetResultKillmailRow(implicit e0: GR[Int], e1: GR[Option[Int]], e2: GR[java.sql.Timestamp], e3: GR[Double]): GR[KillmailRow] = GR{
     prs => import prs._
-    KillmailRow.tupled((<<[Int], <<[Int], <<[Int], <<[Int], <<[java.sql.Timestamp], <<[Int], <<[Int], <<[Double], <<[Double], <<[Double]))
+    KillmailRow.tupled((<<[Int], <<[Int], <<?[Int], <<[Int], <<[java.sql.Timestamp], <<[Int], <<?[Int], <<[Double], <<[Double], <<[Double]))
   }
   /** Table description of table killmail. Objects of this class serve as prototypes for rows in queries. */
   class Killmail(_tableTag: Tag) extends profile.api.Table[KillmailRow](_tableTag, "killmail") {
     def * = (killId, shipId, characterId, solarsystemId, killTime, attackerCount, finalBlow, positionX, positionY, positionZ) <> (KillmailRow.tupled, KillmailRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(killId), Rep.Some(shipId), Rep.Some(characterId), Rep.Some(solarsystemId), Rep.Some(killTime), Rep.Some(attackerCount), Rep.Some(finalBlow), Rep.Some(positionX), Rep.Some(positionY), Rep.Some(positionZ)).shaped.<>({r=>import r._; _1.map(_=> KillmailRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(killId), Rep.Some(shipId), characterId, Rep.Some(solarsystemId), Rep.Some(killTime), Rep.Some(attackerCount), finalBlow, Rep.Some(positionX), Rep.Some(positionY), Rep.Some(positionZ)).shaped.<>({r=>import r._; _1.map(_=> KillmailRow.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7, _8.get, _9.get, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column kill_id SqlType(int4), PrimaryKey */
     val killId: Rep[Int] = column[Int]("kill_id", O.PrimaryKey)
     /** Database column ship_id SqlType(int4) */
     val shipId: Rep[Int] = column[Int]("ship_id")
-    /** Database column character_id SqlType(int4) */
-    val characterId: Rep[Int] = column[Int]("character_id")
+    /** Database column character_id SqlType(int4), Default(None) */
+    val characterId: Rep[Option[Int]] = column[Option[Int]]("character_id", O.Default(None))
     /** Database column solarsystem_id SqlType(int4) */
     val solarsystemId: Rep[Int] = column[Int]("solarsystem_id")
     /** Database column kill_time SqlType(timestamp) */
     val killTime: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("kill_time")
     /** Database column attacker_count SqlType(int4) */
     val attackerCount: Rep[Int] = column[Int]("attacker_count")
-    /** Database column final_blow SqlType(int4) */
-    val finalBlow: Rep[Int] = column[Int]("final_blow")
+    /** Database column final_blow SqlType(int4), Default(None) */
+    val finalBlow: Rep[Option[Int]] = column[Option[Int]]("final_blow", O.Default(None))
     /** Database column position_x SqlType(float8) */
     val positionX: Rep[Double] = column[Double]("position_x")
     /** Database column position_y SqlType(float8) */

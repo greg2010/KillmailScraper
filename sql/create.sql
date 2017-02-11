@@ -11,15 +11,16 @@ BEGIN;
     position_x DOUBLE PRECISION NOT NULL,
     position_y DOUBLE PRECISION NOT NULL,
     position_z DOUBLE PRECISION NOT NULL,
+    added_at TIMESTAMP NOT NULL,
     PRIMARY KEY (kill_id)
   );
 
 
   CREATE TABLE attackers(
     kill_id INT NOT NULL,
-    ship_id INT NOT NULL,
+    ship_id INT,
     character_id INT,
-    weaponType_id INT NOT NULL,
+    weaponType_id INT,
     damage_done BIGINT NOT NULL,
     security_status DOUBLE PRECISION NOT NULL,
     FOREIGN KEY (kill_id) REFERENCES killmail(kill_id)
@@ -39,6 +40,7 @@ BEGIN;
     character_id INT NOT NULL,
     corporation_id INT NOT NULL,
     name VARCHAR(50) NOT NULL,
+    last_updated TIMESTAMP NOT NULL,
     PRIMARY KEY (character_id)
   );
 

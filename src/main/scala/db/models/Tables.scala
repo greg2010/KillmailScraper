@@ -2,7 +2,7 @@ package db.models
 // AUTO-GENERATED Slick data model
 /** Stand-alone Slick data model for immediate use */
 object Tables extends {
-  val profile = slick.jdbc.PostgresProfile
+  val profile = SlickCodegen.CustomPostgresDriver
 } with Tables
 
 /** Slick data model trait for extension, choice of backend or usage in the cake pattern. (Make sure to initialize this late.) */
@@ -25,7 +25,7 @@ trait Tables {
    *  @param weapontypeId Database column weapontype_id SqlType(int4), Default(None)
    *  @param damageDone Database column damage_done SqlType(int8)
    *  @param securityStatus Database column security_status SqlType(float8) */
-  case class AttackersRow(killId: Int, shipId: Option[Int] = None, characterId: Option[Int] = None, weapontypeId: Option[Int] = None, damageDone: Long, securityStatus: Double)
+  final case class AttackersRow(killId: Int, shipId: Option[Int] = None, characterId: Option[Int] = None, weapontypeId: Option[Int] = None, damageDone: Long, securityStatus: Double)
   /** GetResult implicit for fetching AttackersRow objects using plain SQL queries */
   implicit def GetResultAttackersRow(implicit e0: GR[Int], e1: GR[Option[Int]], e2: GR[Long], e3: GR[Double]): GR[AttackersRow] = GR{
     prs => import prs._
@@ -59,18 +59,19 @@ trait Tables {
   /** Entity class storing rows of table Character
    *  @param characterId Database column character_id SqlType(int4), PrimaryKey
    *  @param corporationId Database column corporation_id SqlType(int4)
-   *  @param name Database column name SqlType(varchar), Length(50,true) */
-  case class CharacterRow(characterId: Int, corporationId: Int, name: String)
+   *  @param name Database column name SqlType(varchar), Length(50,true)
+   *  @param lastUpdated Database column last_updated SqlType(timestamp) */
+  final case class CharacterRow(characterId: Int, corporationId: Int, name: String, lastUpdated: java.sql.Timestamp)
   /** GetResult implicit for fetching CharacterRow objects using plain SQL queries */
-  implicit def GetResultCharacterRow(implicit e0: GR[Int], e1: GR[String]): GR[CharacterRow] = GR{
+  implicit def GetResultCharacterRow(implicit e0: GR[Int], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[CharacterRow] = GR{
     prs => import prs._
-    CharacterRow.tupled((<<[Int], <<[Int], <<[String]))
+    CharacterRow.tupled((<<[Int], <<[Int], <<[String], <<[java.sql.Timestamp]))
   }
   /** Table description of table character. Objects of this class serve as prototypes for rows in queries. */
   class Character(_tableTag: Tag) extends profile.api.Table[CharacterRow](_tableTag, "character") {
-    def * = (characterId, corporationId, name) <> (CharacterRow.tupled, CharacterRow.unapply)
+    def * = (characterId, corporationId, name, lastUpdated) <> (CharacterRow.tupled, CharacterRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(characterId), Rep.Some(corporationId), Rep.Some(name)).shaped.<>({r=>import r._; _1.map(_=> CharacterRow.tupled((_1.get, _2.get, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(characterId), Rep.Some(corporationId), Rep.Some(name), Rep.Some(lastUpdated)).shaped.<>({r=>import r._; _1.map(_=> CharacterRow.tupled((_1.get, _2.get, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column character_id SqlType(int4), PrimaryKey */
     val characterId: Rep[Int] = column[Int]("character_id", O.PrimaryKey)
@@ -78,6 +79,8 @@ trait Tables {
     val corporationId: Rep[Int] = column[Int]("corporation_id")
     /** Database column name SqlType(varchar), Length(50,true) */
     val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
+    /** Database column last_updated SqlType(timestamp) */
+    val lastUpdated: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("last_updated")
   }
   /** Collection-like TableQuery object for table Character */
   lazy val Character = new TableQuery(tag => new Character(tag))
@@ -86,7 +89,7 @@ trait Tables {
    *  @param corporationId Database column corporation_id SqlType(int4), PrimaryKey
    *  @param allianceId Database column alliance_id SqlType(int4)
    *  @param name Database column name SqlType(varchar), Length(50,true) */
-  case class CorporationRow(corporationId: Int, allianceId: Int, name: String)
+  final case class CorporationRow(corporationId: Int, allianceId: Int, name: String)
   /** GetResult implicit for fetching CorporationRow objects using plain SQL queries */
   implicit def GetResultCorporationRow(implicit e0: GR[Int], e1: GR[String]): GR[CorporationRow] = GR{
     prs => import prs._
@@ -113,7 +116,7 @@ trait Tables {
    *  @param itemId Database column item_id SqlType(int4)
    *  @param quantityDropped Database column quantity_dropped SqlType(int4)
    *  @param quantityDestroyed Database column quantity_destroyed SqlType(int4) */
-  case class ItemTypeRow(killId: Int, itemId: Int, quantityDropped: Int, quantityDestroyed: Int)
+  final case class ItemTypeRow(killId: Int, itemId: Int, quantityDropped: Int, quantityDestroyed: Int)
   /** GetResult implicit for fetching ItemTypeRow objects using plain SQL queries */
   implicit def GetResultItemTypeRow(implicit e0: GR[Int]): GR[ItemTypeRow] = GR{
     prs => import prs._
@@ -150,18 +153,19 @@ trait Tables {
    *  @param finalBlow Database column final_blow SqlType(int4), Default(None)
    *  @param positionX Database column position_x SqlType(float8)
    *  @param positionY Database column position_y SqlType(float8)
-   *  @param positionZ Database column position_z SqlType(float8) */
-  case class KillmailRow(killId: Int, shipId: Int, characterId: Option[Int] = None, solarsystemId: Int, killTime: java.sql.Timestamp, attackerCount: Int, finalBlow: Option[Int] = None, positionX: Double, positionY: Double, positionZ: Double)
+   *  @param positionZ Database column position_z SqlType(float8)
+   *  @param addedAt Database column added_at SqlType(timestamp) */
+  final case class KillmailRow(killId: Int, shipId: Int, characterId: Option[Int] = None, solarsystemId: Int, killTime: java.sql.Timestamp, attackerCount: Int, finalBlow: Option[Int] = None, positionX: Double, positionY: Double, positionZ: Double, addedAt: java.sql.Timestamp)
   /** GetResult implicit for fetching KillmailRow objects using plain SQL queries */
   implicit def GetResultKillmailRow(implicit e0: GR[Int], e1: GR[Option[Int]], e2: GR[java.sql.Timestamp], e3: GR[Double]): GR[KillmailRow] = GR{
     prs => import prs._
-    KillmailRow.tupled((<<[Int], <<[Int], <<?[Int], <<[Int], <<[java.sql.Timestamp], <<[Int], <<?[Int], <<[Double], <<[Double], <<[Double]))
+    KillmailRow.tupled((<<[Int], <<[Int], <<?[Int], <<[Int], <<[java.sql.Timestamp], <<[Int], <<?[Int], <<[Double], <<[Double], <<[Double], <<[java.sql.Timestamp]))
   }
   /** Table description of table killmail. Objects of this class serve as prototypes for rows in queries. */
   class Killmail(_tableTag: Tag) extends profile.api.Table[KillmailRow](_tableTag, "killmail") {
-    def * = (killId, shipId, characterId, solarsystemId, killTime, attackerCount, finalBlow, positionX, positionY, positionZ) <> (KillmailRow.tupled, KillmailRow.unapply)
+    def * = (killId, shipId, characterId, solarsystemId, killTime, attackerCount, finalBlow, positionX, positionY, positionZ, addedAt) <> (KillmailRow.tupled, KillmailRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(killId), Rep.Some(shipId), characterId, Rep.Some(solarsystemId), Rep.Some(killTime), Rep.Some(attackerCount), finalBlow, Rep.Some(positionX), Rep.Some(positionY), Rep.Some(positionZ)).shaped.<>({r=>import r._; _1.map(_=> KillmailRow.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7, _8.get, _9.get, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(killId), Rep.Some(shipId), characterId, Rep.Some(solarsystemId), Rep.Some(killTime), Rep.Some(attackerCount), finalBlow, Rep.Some(positionX), Rep.Some(positionY), Rep.Some(positionZ), Rep.Some(addedAt)).shaped.<>({r=>import r._; _1.map(_=> KillmailRow.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7, _8.get, _9.get, _10.get, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column kill_id SqlType(int4), PrimaryKey */
     val killId: Rep[Int] = column[Int]("kill_id", O.PrimaryKey)
@@ -183,6 +187,8 @@ trait Tables {
     val positionY: Rep[Double] = column[Double]("position_y")
     /** Database column position_z SqlType(float8) */
     val positionZ: Rep[Double] = column[Double]("position_z")
+    /** Database column added_at SqlType(timestamp) */
+    val addedAt: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("added_at")
   }
   /** Collection-like TableQuery object for table Killmail */
   lazy val Killmail = new TableQuery(tag => new Killmail(tag))
@@ -193,7 +199,7 @@ trait Tables {
    *  @param hash Database column hash SqlType(varchar), Length(50,true)
    *  @param totalValue Database column total_value SqlType(float8)
    *  @param points Database column points SqlType(int4) */
-  case class ZkbMetadataRow(killId: Int, locationId: Int, hash: String, totalValue: Double, points: Int)
+  final case class ZkbMetadataRow(killId: Int, locationId: Int, hash: String, totalValue: Double, points: Int)
   /** GetResult implicit for fetching ZkbMetadataRow objects using plain SQL queries */
   implicit def GetResultZkbMetadataRow(implicit e0: GR[Int], e1: GR[String], e2: GR[Double]): GR[ZkbMetadataRow] = GR{
     prs => import prs._

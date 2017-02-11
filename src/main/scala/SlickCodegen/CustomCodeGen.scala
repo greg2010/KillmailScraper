@@ -1,7 +1,7 @@
 package SlickCodegen
 
 import slick.codegen._
-import slick.driver.PostgresDriver
+import CustomPostgresDriver._
 import slick.jdbc.PostgresProfile
 
 import scala.concurrent.duration._
@@ -13,7 +13,7 @@ object CustomCodeGen extends Env {
   def main(args: Array[String]): Unit = {
     Await.ready(
       codegen.map(_.writeToFile(
-        "slick.jdbc.PostgresProfile",
+        "SlickCodegen.CustomPostgresDriver",
         args(0),
         "db.models", // package under which the generated code is placed
         "Tables", // container

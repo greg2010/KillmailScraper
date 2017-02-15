@@ -14,6 +14,7 @@ resolvers ++=
     Resolver.bintrayRepo("kwark", "maven"))
 
 val slickVersion = "3.2.0-RC1"
+val http4sVersion = "0.15.3a"
 
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
@@ -24,13 +25,11 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg" % "0.15.0-M4",
   "org.postgresql" % "postgresql" % "9.4.1212",
   "io.spray" %% "spray-json" % "1.3.3",
-  "org.scalaj" %% "scalaj-http" % "2.3.0",
-  "org.scalaz" %% "scalaz-concurrent" % "7.2.8",
-  "org.http4s" %% "http4s-core" % "0.15.3a",
-  "org.http4s" %% "http4s-blaze-client" % "0.15.3a",
-  "org.http4s" %% "http4s-argonaut" % "0.15.3a",
-  "org.http4s" %% "http4s-dsl" % "0.15.3a",
-  "org.http4s" %% "http4s-client" % "0.15.3a"
+  "org.http4s" %% "http4s-core" % http4sVersion,
+  "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+  "org.http4s" %% "http4s-argonaut" % http4sVersion,
+  "org.http4s" %% "http4s-dsl" % http4sVersion,
+  "org.http4s" %% "http4s-client" % http4sVersion
 )
 
 

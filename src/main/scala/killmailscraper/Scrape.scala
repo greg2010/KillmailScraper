@@ -1,30 +1,28 @@
-
 package killmailscraper
 
 import java.net.SocketTimeoutException
 import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
 
-import slick.jdbc.JdbcBackend._
-import db.models.Tables.profile.api._
-import spray.json._
-
-import scalaj.http._
-import com.typesafe.scalalogging.LazyLogging
-
 import scala.concurrent._
 import ExecutionContext.Implicits.global
+import scala.concurrent.duration._
+import scala.util.{Failure, Success}
+
+
+import com.typesafe.scalalogging.LazyLogging
+
+import slick.jdbc.JdbcBackend._
+import db.models.Tables.profile.api._
+import slick.jdbc.TransactionIsolation.ReadCommitted
+import spray.json._
+
 import KillmailPackage._
 import db.models.Tables.{CharacterRow, Attackers => DBAttackers, Killmail => DBKillmail, _}
-import org.http4s.Uri
 
-import scalaz.concurrent.Task._
+import org.http4s.Uri
 import org.http4s.client.blaze.PooledHttp1Client
 
-import scala.concurrent.duration._
-import slick.jdbc.TransactionIsolation.{ReadCommitted, RepeatableRead}
-
-import scala.util.{Failure, Success}
 
 class Scrape(db: DatabaseDef) extends LazyLogging {
   private val kmEndpoint: Uri = Uri.unsafeFromString("https://redisq.zkillboard.com/listen.php")
@@ -38,16 +36,15 @@ class Scrape(db: DatabaseDef) extends LazyLogging {
         parseJson(s)
       } catch {
         case (exc: NullPackageException) => logger.warn(exc.toString, exc)
-        case (exc: SocketTimeoutException) => logger.warn(s"Did not get response from remote server")
+        case (exc: SocketTimeoutException) => logger.warn(s"Socket timeout", exc)
         case (exc) => logger.error("General run exception", exc)
       }
       next()
     }
     next()
-
   }
 
-  def parseJson(s: String): Future[Unit] = {
+  private def parseJson(s: String): Future[Unit] = {
     val f = Future {
       val json = s.parseJson.convertTo[RootPackage]
       pushToDB(json.`package`)
@@ -59,33 +56,6 @@ class Scrape(db: DatabaseDef) extends LazyLogging {
     }
     f
   }
-
-  /*def getAndLogKillmail: Future[RootPackage] = {
-    val f: Future[RootPackage] = Future {
-      val httpResponse = Http(kmEndpoint)
-        .timeout(connTimeoutMs = 10000, readTimeoutMs = 10000)
-        .asString
-      val rawPayload = httpResponse.body
-
-      httpResponse.code match {
-        case 200 => logger.debug(s"Got response $rawPayload")
-        case any => logger.warn(s"Got error code ${any}")
-      }
-
-      val parsedValue = rawPayload.parseJson.convertTo[RootPackage]
-      logger.info(s"Succesfully fetched killmail with killId=${parsedValue.`package`.killID}")
-      pushToDB(parsedValue.`package`)
-      parsedValue
-    }
-    f.onFailure {
-      case (exc: NullPackageException) => logger.warn(exc.toString, exc)
-      case (exc: SocketTimeoutException) => logger.warn(s"Did not get response from remote server")
-      case (exc: DeserializationException) => logger.warn(s"Error deserializng json object, cause: ${exc.cause}," +
-        s" fieldNames: ${exc.fieldNames}, message: ${exc.msg}", exc)
-      case (exc) => logger.error("General getDeserializedJson exception", exc)
-    }
-    f
-  }*/
 
   private def getKillmailRow(pkg: KillPackage): Future[KillmailRow] = {
     val f = Future {

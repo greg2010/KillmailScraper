@@ -14,6 +14,8 @@ dependencies:
 test:
   override:
     - sbt assembly
+    - echo $GCLOUD_SERVICE_KEY
+    - echo $GCLOUD_PROJECT
     - echo $GCLOUD_SERVICE_KEY | base64 --decode > ${HOME}/gcloud-service-key.json
     - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
     - gcloud config set project $GCLOUD_PROJECT

@@ -8,4 +8,18 @@ dependencies:
   cache_directories:
     - ~/.ivy2
     - ~/.sbt
+    - ~/google-cloud-sdk
     - ~/docker
+
+test:
+  override:
+    - sbt assembly
+    - echo $GCLOUD_SERVICE_KEY | base64 --decode > ${HOME}/gcloud-service-key.json
+    - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
+    - gcloud config set project $GCLOUD_PROJECT
+    - gcloud docker ps
+    - docker build -t red/killmailscraper .
+    - docker tag red/killmailscraper gcr.io/red/killmailscraper:${CIRCLE_BRANCH}_${CIRCLE_SHA1:0:7}
+    - docker tag red/killmailscraper gcr.io/red/killmailscraper:${CIRCLE_BRANCH}_latest
+    - docker tag red/killmailscraper gcr.io/red/killmailscraper:latest
+    - gcloud docker push gcr.io/red/killmailscraper

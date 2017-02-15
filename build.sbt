@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.12.1"
 
+assemblyJarName in assembly := "killmailscraper.jar"
+
 mainClass in (Compile, run) := Some("killmailscraper.Package")
 
 resolvers += Resolver.jcenterRepo

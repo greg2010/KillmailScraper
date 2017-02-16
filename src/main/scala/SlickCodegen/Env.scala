@@ -10,6 +10,5 @@ trait Env {
   protected val parsedConfig = ConfigFactory.parseFile(new File("src/main/resources/reference.conf"))
   protected val config = ConfigFactory.load(parsedConfig)
   protected val db = Database.forConfig("postgres", config)
-  protected val conf = ConfigFactory.load()
 
 }

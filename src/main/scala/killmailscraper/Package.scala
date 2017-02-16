@@ -7,7 +7,7 @@ object Package
     with LazyLogging
     with SlickCodegen.Env {
   logger.info("Scrapping service is starting...")
-  val scrape = new Scrape(db)
+  val scrape = new Scrape(db, config.getConfig("killmailscraper"))
 
   logger.info("Scraper service is started")
   scrape.run()

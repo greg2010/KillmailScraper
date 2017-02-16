@@ -8,31 +8,29 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
-
-
 import com.typesafe.scalalogging.LazyLogging
-
 import slick.jdbc.JdbcBackend._
 import db.models.Tables.profile.api._
 import slick.jdbc.TransactionIsolation.ReadCommitted
 import spray.json._
-
 import KillmailPackage._
+import com.typesafe.config.Config
 import db.models.Tables.{CharacterRow, Attackers => DBAttackers, Killmail => DBKillmail, _}
-
 import org.http4s.Uri
 import org.http4s.client.blaze.PooledHttp1Client
 
 
-class Scrape(db: DatabaseDef) extends LazyLogging {
-  private val kmEndpoint: Uri = Uri.unsafeFromString("https://redisq.zkillboard.com/listen.php")
+class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
+  private val kmEndpoint: Uri = Uri.unsafeFromString(s"https://redisq.zkillboard.com/listen.php?" +
+    s"queueID=${config.getString("queueID")}&" +
+    s"ttw=${config.getInt("ttw")}")
 
   def run(): Unit = {
     val httpClient = PooledHttp1Client()
     val getKillmail = httpClient.expect[String](kmEndpoint)
     def next(): Unit = {
       try {
-        val s = getKillmail.unsafePerformSyncFor(11.seconds)
+        val s = getKillmail.unsafePerformSyncFor(1.seconds)
         parseJson(s)
       } catch {
         case (exc: NullPackageException) => logger.warn(exc.toString, exc)

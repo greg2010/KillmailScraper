@@ -11,7 +11,7 @@ dependencies:
     - ~/google-cloud-sdk
     - ~/docker
 
-test:
+deployment:
   override:
     - sbt assembly
     - echo $GCLOUD_SERVICE_KEY | base64 --decode > ${HOME}/gcloud-service-key.json

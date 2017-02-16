@@ -17,7 +17,7 @@ import KillmailPackage._
 import com.typesafe.config.Config
 import db.models.Tables.{CharacterRow, Attackers => DBAttackers, Killmail => DBKillmail, _}
 import org.http4s.Uri
-import org.http4s.client.blaze.PooledHttp1Client
+import org.http4s.client.blaze._
 
 
 class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
@@ -26,11 +26,11 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
     s"ttw=${config.getInt("ttw")}")
 
   def run(): Unit = {
-    val httpClient = PooledHttp1Client()
+    val httpClient = SimpleHttp1Client()
     val getKillmail = httpClient.expect[String](kmEndpoint)
     def next(): Unit = {
       try {
-        val s = getKillmail.unsafePerformSyncFor(1.seconds)
+        val s = getKillmail.unsafePerformSyncFor(3.seconds)
         parseJson(s)
       } catch {
         case (exc: NullPackageException) => logger.warn(exc.toString, exc)

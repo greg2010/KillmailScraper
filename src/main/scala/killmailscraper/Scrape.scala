@@ -33,7 +33,6 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         val s = getKillmail.unsafePerformSyncFor(3.seconds)
         parseJson(s)
       } catch {
-        case (exc: NullPackageException) => logger.warn(exc.toString, exc)
         case (exc: SocketTimeoutException) => logger.warn(s"Socket timeout", exc)
         case (exc) => logger.error("General run exception", exc)
       }
@@ -48,6 +47,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       pushToDB(json.`package`)
     }
     f.onFailure {
+      case (exc: NullPackageException) => logger.warn(exc.toString)
       case (exc: DeserializationException) => logger.warn(s"Error deserializng json object, cause: ${exc.cause}," +
         s" fieldNames: ${exc.fieldNames}, message: ${exc.msg}", exc)
       case (exc) => logger.error("General getDeserializedJson exception", exc)
@@ -86,6 +86,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         positionZ = km.victim.position.z,
         addedAt = now)
     }
+
     f.onFailure {
       case (exc: ParseException) => logger.warn(s"Failed to parse killTime=${pkg.killmail.killTime}", exc)
       case (exc) => logger.error("General exception in getKillmailsRow", exc)
@@ -123,6 +124,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
           securityStatus = attacker.securityStatus)
       }
     }
+
     f.onFailure {
       case (exc) => logger.error("General exception in getAttackersRowList", exc)
     }
@@ -148,6 +150,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         case None => charList
       }
     }
+
     f.onFailure {
       case (exc) => logger.error("General exception in getAttackersRowList", exc)
     }
@@ -172,6 +175,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         case None => None
       }
     }
+
     f.onFailure {
       case (exc) => logger.error("General exception in getItemRowList", exc)
     }
@@ -183,6 +187,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       ZkbMetadataRow(killId = pkg.killID, locationId = pkg.zkb.locationID, hash = pkg.zkb.hash,
         totalValue = pkg.zkb.totalValue, points = pkg.zkb.points)
     }
+
     f.onFailure {
       case (exc) => logger.error("General exception in getZkbMetadataRow", exc)
     }

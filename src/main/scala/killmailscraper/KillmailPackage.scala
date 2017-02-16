@@ -54,8 +54,8 @@ case class NullPackageException(message: String) extends RuntimeException
 object KillmailPackage extends DefaultJsonProtocol {
   implicit object PackageJson extends JsonReader[RootPackage] {
     def read(value: JsValue): RootPackage = value.asJsObject.getFields("package").headOption match {
+      case Some(JsNull) => throw NullPackageException(s"KillPackage expected, got null")
       case Some(JsObject(x)) => RootPackage(x.toJson.convertTo[KillPackage])
-      case Some(x) => throw NullPackageException(s"KillPackage expected, got ${x.toString}")
     }
   }
   implicit val nullPackage: JsonFormat[NullPackage] = lazyFormat(jsonFormat1(NullPackage))

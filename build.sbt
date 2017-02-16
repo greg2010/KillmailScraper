@@ -5,6 +5,18 @@ version := "1.0"
 scalaVersion := "2.12.1"
 
 assemblyJarName in assembly := "killmailscraper.jar"
+mainClass in assembly := Some("killmailscraper.Package")
+// Hax to get .jar to execute
+assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) ((old) => {
+  case PathList("META-INF", xs @ _*) =>
+    (xs map {_.toLowerCase}) match {
+      case ("manifest.mf" :: Nil) | ("index.list" :: Nil) | ("dependencies" :: Nil) => MergeStrategy.discard
+      case _ => MergeStrategy.first
+    }
+  case PathList("reference.conf") => MergeStrategy.concat
+  case PathList(_*) => MergeStrategy.first
+})
+
 
 mainClass in (Compile, run) := Some("killmailscraper.Package")
 

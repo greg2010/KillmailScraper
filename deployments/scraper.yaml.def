@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: scraper
-        image: gcr.io/eveinc-158804/killmailscraper:master_e1d8e4c
+        image: gcr.io/eveinc-158804/killmailscraper:master_latest
         imagePullPolicy: Always
         resources:
           requests:

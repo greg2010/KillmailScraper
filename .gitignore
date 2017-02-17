@@ -88,3 +88,5 @@ fabric.properties
 
 # Env variables
 workspace.env
+# Deployment file
+deployments/scraper.yaml

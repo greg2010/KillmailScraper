@@ -30,7 +30,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
     val getKillmail = httpClient.expect[String](kmEndpoint)
     def next(): Unit = {
       try {
-        val s = getKillmail.unsafePerformSyncFor((config.getInt("ttw") + 1).seconds)
+        val s = getKillmail.unsafePerformSyncFor((config.getInt("ttw") + 2).seconds)
         parseJson(s)
       } catch {
         case (exc: SocketTimeoutException) => logger.warn(s"Socket timeout", exc)

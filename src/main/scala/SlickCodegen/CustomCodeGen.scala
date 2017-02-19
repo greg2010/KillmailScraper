@@ -4,6 +4,7 @@ import slick.codegen._
 import CustomPostgresDriver._
 import slick.jdbc.PostgresProfile
 
+import scala.language.postfixOps
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await

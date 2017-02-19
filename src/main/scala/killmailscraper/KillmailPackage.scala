@@ -25,6 +25,7 @@ case class SolarSystem(id: Int)
 
 case class Attacker(character: Option[EntityDef], // Null if attacker is NPC
                     corporation: Option[EntityDef], // Null if NPC
+                    alliance: Option[EntityDef], // Null if no alliance
                     shipType: Option[EntityDef], // Null if NPC (?)
                     weaponType: Option[WeaponType], // Null if unknown (?)
                     damageDone: Long,
@@ -53,9 +54,9 @@ case class NullPackageException(message: String) extends RuntimeException
 
 object KillmailPackage extends DefaultJsonProtocol {
   implicit object PackageJson extends JsonReader[RootPackage] {
-    def read(value: JsValue): RootPackage = value.asJsObject.getFields("package").headOption match {
-      case Some(JsNull) => throw NullPackageException(s"KillPackage expected, got null")
-      case Some(JsObject(x)) => RootPackage(x.toJson.convertTo[KillPackage])
+    def read(value: JsValue): RootPackage = value.asJsObject.getFields("package").head match {
+      case JsNull => throw NullPackageException(s"KillPackage expected, got null")
+      case x => RootPackage(x.toJson.convertTo[KillPackage])
     }
   }
   implicit val nullPackage: JsonFormat[NullPackage] = lazyFormat(jsonFormat1(NullPackage))
@@ -64,7 +65,7 @@ object KillmailPackage extends DefaultJsonProtocol {
   implicit val weaponType: JsonFormat[WeaponType] = lazyFormat(jsonFormat2(WeaponType))
   implicit val entityDef: JsonFormat[EntityDef] = lazyFormat(jsonFormat2(EntityDef))
   implicit val solarSystem: JsonFormat[SolarSystem] = lazyFormat(jsonFormat1(SolarSystem))
-  implicit val attackers: JsonFormat[Attacker] = lazyFormat(jsonFormat7(Attacker))
+  implicit val attackers: JsonFormat[Attacker] = lazyFormat(jsonFormat8(Attacker))
   implicit val position: JsonFormat[Position] = lazyFormat(jsonFormat3(Position))
   implicit val item: JsonFormat[Item] = lazyFormat(jsonFormat3(Item))
   implicit val victim: JsonFormat[Victim] = lazyFormat(jsonFormat7(Victim))

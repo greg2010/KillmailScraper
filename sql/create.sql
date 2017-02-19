@@ -47,7 +47,7 @@ BEGIN;
 
   CREATE TABLE corporation(
     corporation_id INT NOT NULL,
-    alliance_id INT NOT NULL,
+    alliance_id INT,
     name VARCHAR(50) NOT NULL,
     PRIMARY KEY (corporation_id)
   );

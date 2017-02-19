@@ -20,6 +20,8 @@ assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) ((old) => {
 
 mainClass in (Compile, run) := Some("killmailscraper.Package")
 
+scalacOptions ++= Seq("-deprecation", "-feature")
+
 resolvers += Resolver.jcenterRepo
 resolvers ++=
   Seq("twitter-repo" at "https://maven.twttr.com",

@@ -87,24 +87,24 @@ trait Tables {
 
   /** Entity class storing rows of table Corporation
    *  @param corporationId Database column corporation_id SqlType(int4), PrimaryKey
-   *  @param allianceId Database column alliance_id SqlType(int4)
+   *  @param allianceId Database column alliance_id SqlType(int4), Default(None)
    *  @param name Database column name SqlType(varchar), Length(50,true) */
-  final case class CorporationRow(corporationId: Int, allianceId: Int, name: String)
+  final case class CorporationRow(corporationId: Int, allianceId: Option[Int] = None, name: String)
   /** GetResult implicit for fetching CorporationRow objects using plain SQL queries */
-  implicit def GetResultCorporationRow(implicit e0: GR[Int], e1: GR[String]): GR[CorporationRow] = GR{
+  implicit def GetResultCorporationRow(implicit e0: GR[Int], e1: GR[Option[Int]], e2: GR[String]): GR[CorporationRow] = GR{
     prs => import prs._
-    CorporationRow.tupled((<<[Int], <<[Int], <<[String]))
+    CorporationRow.tupled((<<[Int], <<?[Int], <<[String]))
   }
   /** Table description of table corporation. Objects of this class serve as prototypes for rows in queries. */
   class Corporation(_tableTag: Tag) extends profile.api.Table[CorporationRow](_tableTag, "corporation") {
     def * = (corporationId, allianceId, name) <> (CorporationRow.tupled, CorporationRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(corporationId), Rep.Some(allianceId), Rep.Some(name)).shaped.<>({r=>import r._; _1.map(_=> CorporationRow.tupled((_1.get, _2.get, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(corporationId), allianceId, Rep.Some(name)).shaped.<>({r=>import r._; _1.map(_=> CorporationRow.tupled((_1.get, _2, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column corporation_id SqlType(int4), PrimaryKey */
     val corporationId: Rep[Int] = column[Int]("corporation_id", O.PrimaryKey)
-    /** Database column alliance_id SqlType(int4) */
-    val allianceId: Rep[Int] = column[Int]("alliance_id")
+    /** Database column alliance_id SqlType(int4), Default(None) */
+    val allianceId: Rep[Option[Int]] = column[Option[Int]]("alliance_id", O.Default(None))
     /** Database column name SqlType(varchar), Length(50,true) */
     val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
   }

@@ -4,6 +4,7 @@ import java.net.SocketTimeoutException
 import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
 
+import scala.util.control.NonFatal
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -28,16 +29,18 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
   def run(): Unit = {
     val httpClient = SimpleHttp1Client()
     val getKillmail = httpClient.expect[String](kmEndpoint)
+
     def next(): Unit = {
       try {
         val s = getKillmail.unsafePerformSyncFor((config.getInt("ttw") + 2).seconds)
         parseJson(s)
       } catch {
-        case (exc: SocketTimeoutException) => logger.warn(s"Socket timeout", exc)
-        case (exc) => logger.error("General run exception", exc)
+        case (ex: SocketTimeoutException) => logger.warn(s"Socket timeout", ex)
+        case ex if NonFatal(ex) => logger.error("General run exception", ex)
       }
       next()
     }
+
     next()
   }
 
@@ -46,11 +49,12 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       val json = s.parseJson.convertTo[RootPackage]
       pushToDB(json.`package`)
     }
-    f.onFailure {
-      case (exc: NullPackageException) => logger.warn(exc.toString)
-      case (exc: DeserializationException) => logger.warn(s"Error deserializng json object, cause: ${exc.cause}," +
-        s" fieldNames: ${exc.fieldNames}, message: ${exc.msg}", exc)
-      case (exc) => logger.error("General getDeserializedJson exception", exc)
+    f onComplete {
+      case Success(x) => x
+      case Failure(ex: NullPackageException) => logger.warn(ex.toString)
+      case Failure(ex: DeserializationException) => logger.warn(s"Error deserializng json object, cause: ${ex.cause}" +
+        s" fieldNames: ${ex.fieldNames} message: ${ex.msg} killmail: ${s}", ex)
+      case Failure(ex) => logger.error("General getDeserializedJson exception", ex)
     }
     f
   }
@@ -73,7 +77,6 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         case None => None
       }
 
-      // TODO: handle no finalBlow case, no victim charID
       KillmailRow(killId = pkg.killID,
         shipId = km.victim.shipType.id,
         characterId = victimId,
@@ -87,9 +90,10 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         addedAt = now)
     }
 
-    f.onFailure {
-      case (exc: ParseException) => logger.warn(s"Failed to parse killTime=${pkg.killmail.killTime}", exc)
-      case (exc) => logger.error("General exception in getKillmailsRow", exc)
+    f onComplete {
+      case Success(x) => x
+      case Failure(ex: ParseException) => logger.warn(s"Failed to parse killTime=${pkg.killmail.killTime}", ex)
+      case Failure(ex) => logger.error("General exception in getKillmailsRow", ex)
     }
     f
   }
@@ -125,8 +129,9 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       }
     }
 
-    f.onFailure {
-      case (exc) => logger.error("General exception in getAttackersRowList", exc)
+    f onComplete {
+      case Success(x) => x
+      case Failure(ex) => logger.error("General exception in getAttackersRowList", ex)
     }
     f
   }
@@ -151,8 +156,32 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       }
     }
 
-    f.onFailure {
-      case (exc) => logger.error("General exception in getAttackersRowList", exc)
+    f onComplete {
+      case Success(x) => x
+      case Failure(ex) => logger.error("General exception in getAttackersRowList", ex)
+    }
+    f
+  }
+
+  private def getCorporationRowList(pkg: KillPackage): Future[Seq[CorporationRow]] = {
+    val f = Future {
+      val km = pkg.killmail
+      val victimAllianceId: Option[Int] = km.victim.alliance match {
+        case Some(alliance) => Some(alliance.id)
+        case None => None
+      }
+      km.attackers.filter(x => x.corporation.isDefined).map { attacker =>
+        val allianceId: Option[Int] = attacker.alliance match {
+          case Some(x) => Some(x.id)
+          case None => None
+        }
+        CorporationRow(corporationId = attacker.corporation.get.id, allianceId = allianceId, name = attacker.corporation.get.name)
+      } :+ CorporationRow(corporationId = km.victim.corporation.id, allianceId = victimAllianceId, name = km.victim.corporation.name)
+    }
+
+    f onComplete {
+      case Success(x) => x
+      case Failure(ex) => logger.error("General exception in getCorporationRowList", ex)
     }
     f
   }
@@ -176,8 +205,9 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       }
     }
 
-    f.onFailure {
-      case (exc) => logger.error("General exception in getItemRowList", exc)
+    f onComplete {
+      case Success(x) => x
+      case Failure(ex) => logger.error("General exception in getItemRowList", ex)
     }
     f
   }
@@ -188,56 +218,64 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         totalValue = pkg.zkb.totalValue, points = pkg.zkb.points)
     }
 
-    f.onFailure {
-      case (exc) => logger.error("General exception in getZkbMetadataRow", exc)
+    f onComplete {
+      case Success(x) => x
+      case Failure(ex) => logger.error("General exception in getZkbMetadataRow", ex)
     }
     f
   }
 
   def pushToDB(pkg: KillPackage): Unit = {
     // TODO: figure out what to do with corporation table
-      val kmRow = getKillmailRow(pkg)
-      val atRow = getAttackersRowList(pkg)
-      val chRow = getCharacterRowList(pkg)
-      val itemRow = getItemRowList(pkg)
-      val zkbRow = getZkbMetadataRow(pkg)
+    val kmRow = getKillmailRow(pkg)
+    val atRow = getAttackersRowList(pkg)
+    val chRow = getCharacterRowList(pkg)
+    val corpRow = getCorporationRowList(pkg)
+    val itemRow = getItemRowList(pkg)
+    val zkbRow = getZkbMetadataRow(pkg)
+    (for {
+      killmailRow <- kmRow
+      attackersRowList <- atRow
+      characterRowList <- chRow
+      corporationRowList <- corpRow
+      itemRowList <- itemRow
+      zkbMetadataRow <- zkbRow
+    } yield (killmailRow, attackersRowList, characterRowList, itemRowList, zkbMetadataRow, corporationRowList))
+      .onComplete {
+        case Success(rows) => {
+          val characterUpsert = DBIO.sequence(rows._3 map { charRow =>
+            Character.insertOrUpdate(charRow)
+          })
 
-      val composedQuery: Future[(KillmailRow, Seq[AttackersRow], Seq[CharacterRow], Option[Seq[ItemTypeRow]], ZkbMetadataRow)] =
-        for {
-          killmailRow <- kmRow
-          attackersRowList <- atRow
-          characterRowList <- chRow
-          itemRowList <- itemRow
-          zkbMetadataRow <- zkbRow
-        } yield (killmailRow, attackersRowList, characterRowList, itemRowList, zkbMetadataRow)
+          val corporationUpsert = DBIO.sequence(rows._6 map { corpRow =>
+            Corporation.insertOrUpdate(corpRow)
+          })
+
+          logger.debug(s"Building db objects for km #${rows._1.killId} is complete. Trying to push to db.")
+
+          val query = (for {
+            insertIntoKillmailAction <- DBKillmail += rows._1
+            insertIntoAttackersAction <- DBAttackers ++= rows._2
+            insertIntoItemsAction <- ItemType ++= rows._4.getOrElse(None)
+            insertIntoZkbAction <- ZkbMetadata += rows._5
+          } yield ()).transactionally.withTransactionIsolation(ReadCommitted)
 
 
-      composedQuery.flatMap { rows =>
-        val characterUpsert = DBIO.sequence(rows._3 map { charRow =>
-          Character.insertOrUpdate(charRow)
-        })
-
-        logger.debug(s"Building db objects for km #${rows._1.killId} is complete. Trying to push to db.")
-
-        val query = (for {
-          insertIntoKillmailAction <- DBKillmail += rows._1
-          insertIntoAttackersAction <- DBAttackers ++= rows._2
-          insertIntoItemsAction <- ItemType ++= rows._4.getOrElse(None)
-          insertIntoZkbAction <- ZkbMetadata += rows._5
-        } yield ()).transactionally.withTransactionIsolation(ReadCommitted)
-
-
-        db.run(query) flatMap { result =>
-          logger.info(s"Killmail with killId=${rows._1.killId} was succesfully pushed to db.")
-          Future(result)
+          db.run(query) onComplete {
+            case Success(x) => logger.info(s"Killmail with killId=${rows._1.killId} was succesfully pushed to db.")
+            case Failure(ex) => logger.error(s"Killmail insert failed, killId=${rows._1.killId}", ex)
+          }
+          db.run(characterUpsert) onComplete {
+            case Success(x) => logger.info(s"Character(s) ${rows._3.map(_.characterId)} are upserted to DB")
+            case Failure(ex) => logger.error(s"Character upsert failed, killId=${rows._3.map(_.characterId)}", ex)
+          }
+          db.run(corporationUpsert) onComplete {
+            case Success(x) => logger.info(s"Corporation(s) ${rows._6.map(_.corporationId)} are upserted to DB")
+            case Failure(ex) => logger.error(s"Corporation upsert failed, killId=${rows._6.map(_.corporationId)}", ex)
+          }
+          Future(rows)
         }
-        db.run(characterUpsert) flatMap { result =>
-          logger.info(s"Character(s) ${rows._3.map(_.characterId)} are upserted to DB")
-          Future(result)
-        }
-      } onComplete {
-        case Success(res) => res
-        case Failure(ex) => logger.error(s"Failed DB transaction, killId=${pkg.killID}", ex)
+        case Failure(ex) => logger.error(s"Failed to build DB transaction, killId=${pkg.killID}", ex)
       }
   }
 }

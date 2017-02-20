@@ -22,6 +22,7 @@ import org.http4s.client.blaze._
 
 import scala.collection.JavaConverters._
 import enterprises.orbital.eve.esi.client.api._
+import org.http4s.client.UnexpectedStatus
 
 
 class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
@@ -40,6 +41,10 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         val s = getKillmail.unsafePerformSyncFor((config.getInt("ttw") + 2).seconds)
         parseJson(s)
       } catch {
+        case ex: UnexpectedStatus if ex.status.code == 429 => {
+          logger.warn(s"Got unexpected status exception, sleeping for ${config.getInt("ttw") / 2} seconds...", ex)
+          Thread.sleep(config.getInt("ttw") / 2)
+        }
         case (ex: SocketTimeoutException) => logger.warn(s"Socket timeout", ex)
         case ex if NonFatal(ex) => logger.error("General run exception", ex)
       }

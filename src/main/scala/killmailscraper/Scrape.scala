@@ -20,11 +20,16 @@ import db.models.Tables.{CharacterRow, Attackers => DBAttackers, Killmail => DBK
 import org.http4s.Uri
 import org.http4s.client.blaze._
 
+import scala.collection.JavaConverters._
+import enterprises.orbital.eve.esi.client.api._
+
 
 class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
   private val kmEndpoint: Uri = Uri.unsafeFromString(s"https://redisq.zkillboard.com/listen.php?" +
     s"queueID=${config.getString("queueID")}&" +
     s"ttw=${config.getInt("ttw")}")
+
+  private val corporationApi: CorporationApi = new CorporationApi()
 
   def run(): Unit = {
     val httpClient = SimpleHttp1Client()
@@ -164,6 +169,24 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
   }
 
   private def getCorporationRowList(pkg: KillPackage): Future[Seq[CorporationRow]] = {
+    def getCorporationName(corporation: EntityDefOptName): String = {
+      try {
+        corporation.name match {
+          case Some(name) => name
+          case None => {
+            logger.info(s"Missing corporation name for corporation=${corporation.id} killId=${pkg.killmail.killID}")
+            corporationApi
+              .getCorporationsNames(List[java.lang.Long](corporation.id.toLong).asJava, config.getString("eveServerName"))
+              .get(0).getCorporationName
+          }
+        }
+      } catch {
+        case e if NonFatal(e) =>
+          logger.error("Failed to query ESI API to get missing corporation name", e)
+          throw e
+      }
+    }
+
     val f = Future {
       val km = pkg.killmail
       val victimAllianceId: Option[Int] = km.victim.alliance match {
@@ -175,8 +198,10 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
           case Some(x) => Some(x.id)
           case None => None
         }
-        CorporationRow(corporationId = attacker.corporation.get.id, allianceId = allianceId, name = attacker.corporation.get.name)
-      } :+ CorporationRow(corporationId = km.victim.corporation.id, allianceId = victimAllianceId, name = km.victim.corporation.name)
+        CorporationRow(corporationId = attacker.corporation.get.id, allianceId = allianceId,
+          name = getCorporationName(attacker.corporation.get))
+      } :+ CorporationRow(corporationId = km.victim.corporation.id, allianceId = victimAllianceId,
+        name = getCorporationName(km.victim.corporation))
     }
 
     f onComplete {
@@ -226,7 +251,6 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
   }
 
   def pushToDB(pkg: KillPackage): Unit = {
-    // TODO: figure out what to do with corporation table
     val kmRow = getKillmailRow(pkg)
     val atRow = getAttackersRowList(pkg)
     val chRow = getCharacterRowList(pkg)

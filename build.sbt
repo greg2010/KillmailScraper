@@ -45,7 +45,8 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-blaze-client" % http4sVersion,
   "org.http4s" %% "http4s-argonaut" % http4sVersion,
   "org.http4s" %% "http4s-dsl" % http4sVersion,
-  "org.http4s" %% "http4s-client" % http4sVersion
+  "org.http4s" %% "http4s-client" % http4sVersion,
+  "enterprises.orbital.eve.esi" % "client" % "1.0.0.20170108"
 )
 
 

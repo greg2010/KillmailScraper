@@ -20,11 +20,12 @@ case class Killmail(solarSystem: EntityDef,
                     victim: Victim)
 
 case class EntityDef(id: Int, name: String)
+case class EntityDefOptName(id: Int, name: Option[String]) // Because sometimes name is not provided
 case class WeaponType(id: Option[Int], name: String) // id is [None] if WeaponType is Ship
 case class SolarSystem(id: Int)
 
 case class Attacker(character: Option[EntityDef], // Null if attacker is NPC
-                    corporation: Option[EntityDef], // Null if NPC
+                    corporation: Option[EntityDefOptName], // Null if NPC
                     alliance: Option[EntityDef], // Null if no alliance
                     shipType: Option[EntityDef], // Null if NPC (?)
                     weaponType: Option[WeaponType], // Null if unknown (?)
@@ -38,7 +39,7 @@ case class Item(itemType: EntityDef,
                 quantityDropped: Option[Int]) // Null if none dropped
 
 case class Victim(character: Option[EntityDef], // Null if structure
-                  corporation: EntityDef,
+                  corporation: EntityDefOptName,
                   alliance: Option[EntityDef], // Null if no alliance
                   shipType: EntityDef,
                   damageTaken: Long,
@@ -64,6 +65,7 @@ object KillmailPackage extends DefaultJsonProtocol {
   implicit val killmail: JsonFormat[Killmail] = lazyFormat(jsonFormat6(Killmail))
   implicit val weaponType: JsonFormat[WeaponType] = lazyFormat(jsonFormat2(WeaponType))
   implicit val entityDef: JsonFormat[EntityDef] = lazyFormat(jsonFormat2(EntityDef))
+  implicit val entityDefOptName: JsonFormat[EntityDefOptName] = lazyFormat(jsonFormat2(EntityDefOptName))
   implicit val solarSystem: JsonFormat[SolarSystem] = lazyFormat(jsonFormat1(SolarSystem))
   implicit val attackers: JsonFormat[Attacker] = lazyFormat(jsonFormat8(Attacker))
   implicit val position: JsonFormat[Position] = lazyFormat(jsonFormat3(Position))

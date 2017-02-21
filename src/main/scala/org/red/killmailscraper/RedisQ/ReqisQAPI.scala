@@ -27,8 +27,6 @@ class ReqisQAPI(queueId: String) extends LazyLogging {
     val getKillmail = httpClient.expect[RootPackage](url)
     def next(tolerance: FiniteDuration): KillPackage = {
       try {
-        val req = Request(method = Method.GET, uri = url)
-
         val response = getKillmail.unsafePerformSyncFor((scraperConfig.getInt("ttw") + 2).seconds)
         response.`package` match {
           case Some(x) => x

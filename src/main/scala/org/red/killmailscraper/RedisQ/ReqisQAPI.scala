@@ -2,7 +2,7 @@ package org.red.killmailscraper.RedisQ
 
 
 import com.typesafe.scalalogging.LazyLogging
-import org.http4s.Uri
+import org.http4s.{Method, Request, Uri}
 import org.http4s.client.UnexpectedStatus
 import org.http4s.client.blaze._
 import org.http4s.circe._
@@ -10,14 +10,15 @@ import org.red.killmailscraper.RedisQ.RedisQSchema._
 import org.red.killmailscraper.scraperConfig
 import io.circe._
 import io.circe.generic.auto._
+
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 
-object ReqisQAPI extends LazyLogging {
+class ReqisQAPI(queueId: String) extends LazyLogging {
 
   private val url: Uri = Uri.unsafeFromString("https://redisq.zkillboard.com/listen.php?" +
-    s"queueID=${scraperConfig.getString("queueID")}&" +
+    s"queueID=${queueId}&" +
     s"ttw=${scraperConfig.getInt("ttw")}")
 
   def poll(): KillPackage = {
@@ -26,6 +27,8 @@ object ReqisQAPI extends LazyLogging {
     val getKillmail = httpClient.expect[RootPackage](url)
     def next(tolerance: FiniteDuration): KillPackage = {
       try {
+        val req = Request(method = Method.GET, uri = url)
+
         val response = getKillmail.unsafePerformSyncFor((scraperConfig.getInt("ttw") + 2).seconds)
         response.`package` match {
           case Some(x) => x

@@ -48,4 +48,5 @@ object RedisQSchema extends {
                  hash: String,
                  totalValue: Double,
                  points: Long)
+
 }

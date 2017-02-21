@@ -1,10 +1,6 @@
 package org.red.killmailscraper
 
 import com.typesafe.scalalogging._
-import org.red.killmailscraper.RedisQ.ReqisQAPI
-
-import scala.concurrent.Future
-import scala.concurrent.ExecutionContext.Implicits.global
 
 object Server
   extends App

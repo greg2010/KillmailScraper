@@ -1,11 +1,11 @@
-package killmailscraper
+package org.red.killmailscraper
 
 import com.typesafe.scalalogging._
 
-object Package
+object Server
   extends App
     with LazyLogging
-    with SlickCodegen.Env {
+    with Env {
   logger.info(s"Scrapping service is starting with queueId=${config.getConfig("killmailscraper").getString("queueID")} " +
     s"and ttw=${config.getConfig("killmailscraper").getInt("ttw")} ...")
   val scrape = new Scrape(db, config.getConfig("killmailscraper"))

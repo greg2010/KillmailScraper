@@ -1,5 +1,6 @@
-package killmailscraper
+package org.red.killmailscraper
 
+import java.util.List
 import java.net.SocketTimeoutException
 import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
@@ -22,6 +23,7 @@ import org.http4s.client.blaze._
 
 import scala.collection.JavaConverters._
 import enterprises.orbital.eve.esi.client.api._
+import enterprises.orbital.eve.esi.client.invoker.ApiClient
 import org.http4s.client.UnexpectedStatus
 
 
@@ -42,8 +44,9 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         parseJson(s)
       } catch {
         case ex: UnexpectedStatus if ex.status.code == 429 => {
-          logger.warn(s"Got unexpected status exception, sleeping for ${config.getInt("ttw") / 2} seconds...", ex)
-          Thread.sleep(config.getInt("ttw") / 2)
+          val sleepTime: Int = config.getInt("ttw") / 2
+          logger.warn(s"Got unexpected status exception, sleeping for ${sleepTime.seconds.toMillis} milliseconds...", ex)
+          Thread.sleep(sleepTime.seconds.toMillis)
         }
         case (ex: SocketTimeoutException) => logger.warn(s"Socket timeout", ex)
         case ex if NonFatal(ex) => logger.error("General run exception", ex)
@@ -74,7 +77,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       val km = pkg.killmail
       val timestamp: Timestamp = new Timestamp(new SimpleDateFormat("yyyy.MM.dd HH:mm:ss").parse(km.killTime).getTime)
       val now: Timestamp = new Timestamp(System.currentTimeMillis())
-      val finalBlowId: Option[Int] = km.attackers.find(attacker => attacker.finalBlow) match {
+      val finalBlowId: Option[Long] = km.attackers.find(attacker => attacker.finalBlow) match {
         case Some(attacker) => attacker.character match {
           case Some(character) => Some(character.id)
           case None => None
@@ -82,7 +85,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
         case None => None
       }
 
-      val victimId: Option[Int] = km.victim.character match {
+      val victimId: Option[Long] = km.victim.character match {
         case Some(x) => Option(x.id)
         case None => None
       }
@@ -113,15 +116,15 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
     val f = Future {
       val km = pkg.killmail
       km.attackers map { attacker =>
-        val attackerId: Option[Int] = attacker.character match {
+        val attackerId: Option[Long] = attacker.character match {
           case Some(char) => Some(char.id)
           case None => None
         }
-        val shipId: Option[Int] = attacker.shipType match {
+        val shipId: Option[Long] = attacker.shipType match {
           case Some(ship) => Some(ship.id)
           case None => None
         }
-        val weaponId: Option[Int] = attacker.weaponType match {
+        val weaponId: Option[Long] = attacker.weaponType match {
           // Spicy pattern matching
           case Some(weapon) => weapon.id match {
             case Some(id) => Some(id)
@@ -174,7 +177,8 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
   }
 
   private def getCorporationRowList(pkg: KillPackage): Future[Seq[CorporationRow]] = {
-    def getCorporationName(corporation: EntityDefOptName): String = {
+
+    /*def getCorporationName(corporation: EntityDef): String = {
       try {
         corporation.name match {
           case Some(name) => name
@@ -190,23 +194,23 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
           logger.error("Failed to query ESI API to get missing corporation name", e)
           throw e
       }
-    }
+    }*/
 
     val f = Future {
       val km = pkg.killmail
-      val victimAllianceId: Option[Int] = km.victim.alliance match {
+      val victimAllianceId: Option[Long] = km.victim.alliance match {
         case Some(alliance) => Some(alliance.id)
         case None => None
       }
       km.attackers.filter(x => x.corporation.isDefined).map { attacker =>
-        val allianceId: Option[Int] = attacker.alliance match {
+        val allianceId: Option[Long] = attacker.alliance match {
           case Some(x) => Some(x.id)
           case None => None
         }
         CorporationRow(corporationId = attacker.corporation.get.id, allianceId = allianceId,
-          name = getCorporationName(attacker.corporation.get))
+          name = attacker.corporation.get.name)
       } :+ CorporationRow(corporationId = km.victim.corporation.id, allianceId = victimAllianceId,
-        name = getCorporationName(km.victim.corporation))
+        name = km.victim.corporation.name)
     }
 
     f onComplete {
@@ -218,7 +222,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
 
   private def getItemRowList(pkg: KillPackage): Future[Option[Seq[ItemTypeRow]]] = {
     val f = Future {
-      pkg.killmail.victim.Items match {
+      pkg.killmail.victim.items match {
         case Some(items) => {
           val km = pkg.killmail
           // TODO: rename(?) itemType
@@ -262,6 +266,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
     val corpRow = getCorporationRowList(pkg)
     val itemRow = getItemRowList(pkg)
     val zkbRow = getZkbMetadataRow(pkg)
+
     (for {
       killmailRow <- kmRow
       attackersRowList <- atRow
@@ -302,6 +307,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
             case Success(x) => logger.info(s"Corporation(s) ${rows._6.map(_.corporationId)} are upserted to DB")
             case Failure(ex) => logger.error(s"Corporation upsert failed, killId=${rows._6.map(_.corporationId)}", ex)
           }
+
           Future(rows)
         }
         case Failure(ex) => logger.error(s"Failed to build DB transaction, killId=${pkg.killID}", ex)

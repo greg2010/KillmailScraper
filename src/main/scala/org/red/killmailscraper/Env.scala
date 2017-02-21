@@ -1,4 +1,4 @@
-package SlickCodegen
+package org.red.killmailscraper
 
 import java.io.File
 

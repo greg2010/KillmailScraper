@@ -2,6 +2,7 @@ package SlickCodegen
 
 import slick.codegen._
 import CustomPostgresDriver._
+import org.red.killmailscraper.Env
 import slick.jdbc.PostgresProfile
 
 import scala.language.postfixOps
@@ -16,26 +17,21 @@ object CustomCodeGen extends Env {
       codegen.map(_.writeToFile(
         "SlickCodegen.CustomPostgresDriver",
         args(0),
-        "db.models", // package under which the generated code is placed
+        "org.red.killmailscraper.db.models", // package under which the generated code is placed
         "Tables", // container
         "Tables.scala" // filename
       )),
       90 seconds
     )
   }
-    val codegen = db.run {
+    private val codegen = db.run {
 
       val list = PostgresProfile.defaultTables
 
       list.flatMap { x =>
-        println(x);
-        PostgresProfile.createModelBuilder(x, true
-        ).buildModel
+        println(x)
+        PostgresProfile.createModelBuilder(x, true).buildModel
       }
-    }
-      .map { model =>
-        new SourceCodeGenerator(model)
-
-      }
+    }.map { model => new SourceCodeGenerator(model) }
 
 }

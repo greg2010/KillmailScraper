@@ -1,4 +1,4 @@
-package killmailscraper
+package org.red.killmailscraper
 
 
 
@@ -8,24 +8,23 @@ import spray.json._
 case class RootPackage(`package`: KillPackage)
 case class NullPackage(`package`: String) // Currently not used
 
-case class KillPackage(killID: Int,
+case class KillPackage(killID: Long,
                        killmail: Killmail,
                        zkb: Zkb)
 
 case class Killmail(solarSystem: EntityDef,
-                    killID: Int,
+                    killID: Long,
                     killTime: String,
                     attackers: List[Attacker],
-                    attackerCount: Int,
+                    attackerCount: Long,
                     victim: Victim)
 
-case class EntityDef(id: Int, name: String)
-case class EntityDefOptName(id: Int, name: Option[String]) // Because sometimes name is not provided
-case class WeaponType(id: Option[Int], name: String) // id is [None] if WeaponType is Ship
-case class SolarSystem(id: Int)
+case class EntityDef(id: Long, name: String)
+case class WeaponType(id: Option[Long], name: String) // id is [None] if WeaponType is Ship
+case class SolarSystem(id: Long)
 
 case class Attacker(character: Option[EntityDef], // Null if attacker is NPC
-                    corporation: Option[EntityDefOptName], // Null if NPC
+                    corporation: Option[EntityDef], // Null if NPC
                     alliance: Option[EntityDef], // Null if no alliance
                     shipType: Option[EntityDef], // Null if NPC (?)
                     weaponType: Option[WeaponType], // Null if unknown (?)
@@ -35,21 +34,21 @@ case class Attacker(character: Option[EntityDef], // Null if attacker is NPC
 
 case class Position(y: Double, x: Double, z: Double)
 case class Item(itemType: EntityDef,
-                quantityDestroyed: Option[Int], // Null if none destroyed
-                quantityDropped: Option[Int]) // Null if none dropped
+                quantityDestroyed: Option[Long], // Null if none destroyed
+                quantityDropped: Option[Long]) // Null if none dropped
 
 case class Victim(character: Option[EntityDef], // Null if structure
-                  corporation: EntityDefOptName,
+                  corporation: EntityDef,
                   alliance: Option[EntityDef], // Null if no alliance
                   shipType: EntityDef,
                   damageTaken: Long,
-                  Items: Option[List[Item]],
+                  items: Option[List[Item]],
                   position: Position)
 
-case class Zkb(locationID: Int,
+case class Zkb(locationID: Long,
                hash: String,
                totalValue: Double,
-               points: Int)
+               points: Long)
 
 case class NullPackageException(message: String) extends RuntimeException
 
@@ -65,7 +64,6 @@ object KillmailPackage extends DefaultJsonProtocol {
   implicit val killmail: JsonFormat[Killmail] = lazyFormat(jsonFormat6(Killmail))
   implicit val weaponType: JsonFormat[WeaponType] = lazyFormat(jsonFormat2(WeaponType))
   implicit val entityDef: JsonFormat[EntityDef] = lazyFormat(jsonFormat2(EntityDef))
-  implicit val entityDefOptName: JsonFormat[EntityDefOptName] = lazyFormat(jsonFormat2(EntityDefOptName))
   implicit val solarSystem: JsonFormat[SolarSystem] = lazyFormat(jsonFormat1(SolarSystem))
   implicit val attackers: JsonFormat[Attacker] = lazyFormat(jsonFormat8(Attacker))
   implicit val position: JsonFormat[Position] = lazyFormat(jsonFormat3(Position))

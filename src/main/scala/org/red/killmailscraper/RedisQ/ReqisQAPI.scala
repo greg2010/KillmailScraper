@@ -1,15 +1,13 @@
 package org.red.killmailscraper.RedisQ
 
-
 import com.typesafe.scalalogging.LazyLogging
 import org.http4s.{Method, Request, Uri}
 import org.http4s.client.UnexpectedStatus
 import org.http4s.client.blaze._
-import org.http4s.circe._
 import org.red.killmailscraper.RedisQ.RedisQSchema._
+import org.red.killmailscraper.RedisQ.RedisQSchema.RedisQJsonDeserializer._
+import spray.json._
 import org.red.killmailscraper.scraperConfig
-import io.circe._
-import io.circe.generic.auto._
 
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
@@ -22,13 +20,13 @@ class ReqisQAPI(queueId: String) extends LazyLogging {
     s"ttw=${scraperConfig.getInt("ttw")}")
 
   def poll(): KillPackage = {
-    implicit val jdec = jsonOf[RootPackage]
     val httpClient = SimpleHttp1Client()
-    val getKillmail = httpClient.expect[RootPackage](url)
+    val getKillmail = httpClient.expect[String](url)
     def next(tolerance: FiniteDuration): KillPackage = {
       try {
         val response = getKillmail.unsafePerformSyncFor((scraperConfig.getInt("ttw") + 2).seconds)
-        response.`package` match {
+          .parseJson.convertTo[RootPackage]
+          response.`package` match {
           case Some(x) => x
           case None => {
             if (tolerance <= 100.milliseconds) next(tolerance)
@@ -42,11 +40,11 @@ class ReqisQAPI(queueId: String) extends LazyLogging {
           Thread.sleep(sleepTime.seconds.toMillis)
           next(tolerance)
         }
-        /*case ex: DeserializationException => {
-          logger.warn(s"Error deserializng json object, cause: ${ex.cause}" +
+        case ex: DeserializationException => {
+          logger.warn(s"Error deserializing json object, cause: ${ex.cause}" +
             s" fieldNames: ${ex.fieldNames} message: ${ex.msg}")
           next(tolerance)
-        }*/
+        }
         case ex if NonFatal(ex) => {
           logger.error(s"General run exception, sleeping for ${tolerance.toMillis} milliseconds", ex)
           Thread.sleep(tolerance.toMillis)

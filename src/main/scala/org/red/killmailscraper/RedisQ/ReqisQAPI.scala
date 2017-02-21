@@ -39,7 +39,7 @@ class ReqisQAPI(queueId: String) extends LazyLogging {
                 s" fieldNames: ${ex.fieldNames} message: ${ex.msg}")
               next()
             }
-            case ex if NonFatal(e) => {
+            case ex if NonFatal(ex) => {
               logger.error(s"General run exception", ex)
               next()
             }

@@ -1,75 +1,75 @@
-package org.red.killmailscraper
+package org.red.killmailscraper.db
 
-import java.util.List
-import java.net.SocketTimeoutException
 import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
 
-import scala.util.control.NonFatal
-import scala.concurrent._
-import ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 import com.typesafe.scalalogging.LazyLogging
-import slick.jdbc.JdbcBackend._
-import db.models.Tables.profile.api._
+import org.red.killmailscraper.RedisQ.RedisQSchema._
+import org.red.killmailscraper.db.models.Tables.profile.api._
+import org.red.killmailscraper.db.models.Tables.{AttackersRow, Character, CharacterRow, Corporation, CorporationRow, ItemType, ItemTypeRow, KillmailRow, ZkbMetadata, ZkbMetadataRow, Attackers => DBAttackers, Killmail => DBKillmail}
+import org.red.killmailscraper.dbAgent
 import slick.jdbc.TransactionIsolation.ReadCommitted
-import spray.json._
-import KillmailPackage._
-import com.typesafe.config.Config
-import db.models.Tables.{CharacterRow, Attackers => DBAttackers, Killmail => DBKillmail, _}
-import org.http4s.Uri
-import org.http4s.client.blaze._
 
-import scala.collection.JavaConverters._
-import enterprises.orbital.eve.esi.client.api._
-import enterprises.orbital.eve.esi.client.invoker.ApiClient
-import org.http4s.client.UnexpectedStatus
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 
-class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
-  private val kmEndpoint: Uri = Uri.unsafeFromString(s"https://redisq.zkillboard.com/listen.php?" +
-    s"queueID=${config.getString("queueID")}&" +
-    s"ttw=${config.getInt("ttw")}")
+object DBController extends LazyLogging {
 
-  private val corporationApi: CorporationApi = new CorporationApi()
+  def pushToDB(pkg: KillPackage): Unit = {
+    val kmRow = getKillmailRow(pkg)
+    val atRow = getAttackersRowList(pkg)
+    val chRow = getCharacterRowList(pkg)
+    val corpRow = getCorporationRowList(pkg)
+    val itemRow = getItemRowList(pkg)
+    val zkbRow = getZkbMetadataRow(pkg)
 
-  def run(): Unit = {
-    val httpClient = SimpleHttp1Client()
-    val getKillmail = httpClient.expect[String](kmEndpoint)
+    (for {
+      killmailRow <- kmRow
+      attackersRowList <- atRow
+      characterRowList <- chRow
+      corporationRowList <- corpRow
+      itemRowList <- itemRow
+      zkbMetadataRow <- zkbRow
+    } yield (killmailRow, attackersRowList, characterRowList, itemRowList, zkbMetadataRow, corporationRowList))
+      .onComplete {
+        case Success(rows) => {
+          val characterUpsert = DBIO.sequence(rows._3 map { charRow =>
+            Character.insertOrUpdate(charRow)
+          })
 
-    def next(): Unit = {
-      try {
-        val s = getKillmail.unsafePerformSyncFor((config.getInt("ttw") + 2).seconds)
-        parseJson(s)
-      } catch {
-        case ex: UnexpectedStatus if ex.status.code == 429 => {
-          val sleepTime: Int = config.getInt("ttw") / 2
-          logger.warn(s"Got unexpected status exception, sleeping for ${sleepTime.seconds.toMillis} milliseconds...", ex)
-          Thread.sleep(sleepTime.seconds.toMillis)
+          val corporationUpsert = DBIO.sequence(rows._6 map { corpRow =>
+            Corporation.insertOrUpdate(corpRow)
+          })
+
+          logger.debug(s"Building db objects for km #${rows._1.killId} is complete. Trying to push to db.")
+
+          val query = (for {
+            insertIntoKillmailAction <- DBKillmail += rows._1
+            insertIntoAttackersAction <- DBAttackers ++= rows._2
+            insertIntoItemsAction <- ItemType ++= rows._4.getOrElse(None)
+            insertIntoZkbAction <- ZkbMetadata += rows._5
+          } yield ()).transactionally.withTransactionIsolation(ReadCommitted)
+
+
+          dbAgent.run(query) onComplete {
+            case Success(x) => logger.info(s"Killmail with killId=${rows._1.killId} was succesfully pushed to db.")
+            case Failure(ex) => logger.error(s"Killmail insert failed, killId=${rows._1.killId}", ex)
+          }
+          dbAgent.run(characterUpsert) onComplete {
+            case Success(x) => logger.info(s"Character(s) ${rows._3.map(_.characterId)} are upserted to DB")
+            case Failure(ex) => logger.error(s"Character upsert failed, killId=${rows._3.map(_.characterId)}", ex)
+          }
+          dbAgent.run(corporationUpsert) onComplete {
+            case Success(x) => logger.info(s"Corporation(s) ${rows._6.map(_.corporationId)} are upserted to DB")
+            case Failure(ex) => logger.error(s"Corporation upsert failed, killId=${rows._6.map(_.corporationId)}", ex)
+          }
+
+          Future(rows)
         }
-        case (ex: SocketTimeoutException) => logger.warn(s"Socket timeout", ex)
-        case ex if NonFatal(ex) => logger.error("General run exception", ex)
+        case Failure(ex) => logger.error(s"Failed to build DB transaction, killId=${pkg.killID}", ex)
       }
-      next()
-    }
-
-    next()
-  }
-
-  private def parseJson(s: String): Future[Unit] = {
-    val f = Future {
-      val json = s.parseJson.convertTo[RootPackage]
-      pushToDB(json.`package`)
-    }
-    f onComplete {
-      case Success(x) => x
-      case Failure(ex: NullPackageException) => logger.warn(ex.toString)
-      case Failure(ex: DeserializationException) => logger.warn(s"Error deserializng json object, cause: ${ex.cause}" +
-        s" fieldNames: ${ex.fieldNames} message: ${ex.msg} killmail: ${s}", ex)
-      case Failure(ex) => logger.error("General getDeserializedJson exception", ex)
-    }
-    f
   }
 
   private def getKillmailRow(pkg: KillPackage): Future[KillmailRow] = {
@@ -220,7 +220,7 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
     f
   }
 
-  private def getItemRowList(pkg: KillPackage): Future[Option[Seq[ItemTypeRow]]] = {
+  def getItemRowList(pkg: KillPackage): Future[Option[Seq[ItemTypeRow]]] = {
     val f = Future {
       pkg.killmail.victim.items match {
         case Some(items) => {
@@ -257,60 +257,5 @@ class Scrape(db: DatabaseDef, config: Config) extends LazyLogging {
       case Failure(ex) => logger.error("General exception in getZkbMetadataRow", ex)
     }
     f
-  }
-
-  def pushToDB(pkg: KillPackage): Unit = {
-    val kmRow = getKillmailRow(pkg)
-    val atRow = getAttackersRowList(pkg)
-    val chRow = getCharacterRowList(pkg)
-    val corpRow = getCorporationRowList(pkg)
-    val itemRow = getItemRowList(pkg)
-    val zkbRow = getZkbMetadataRow(pkg)
-
-    (for {
-      killmailRow <- kmRow
-      attackersRowList <- atRow
-      characterRowList <- chRow
-      corporationRowList <- corpRow
-      itemRowList <- itemRow
-      zkbMetadataRow <- zkbRow
-    } yield (killmailRow, attackersRowList, characterRowList, itemRowList, zkbMetadataRow, corporationRowList))
-      .onComplete {
-        case Success(rows) => {
-          val characterUpsert = DBIO.sequence(rows._3 map { charRow =>
-            Character.insertOrUpdate(charRow)
-          })
-
-          val corporationUpsert = DBIO.sequence(rows._6 map { corpRow =>
-            Corporation.insertOrUpdate(corpRow)
-          })
-
-          logger.debug(s"Building db objects for km #${rows._1.killId} is complete. Trying to push to db.")
-
-          val query = (for {
-            insertIntoKillmailAction <- DBKillmail += rows._1
-            insertIntoAttackersAction <- DBAttackers ++= rows._2
-            insertIntoItemsAction <- ItemType ++= rows._4.getOrElse(None)
-            insertIntoZkbAction <- ZkbMetadata += rows._5
-          } yield ()).transactionally.withTransactionIsolation(ReadCommitted)
-
-
-          db.run(query) onComplete {
-            case Success(x) => logger.info(s"Killmail with killId=${rows._1.killId} was succesfully pushed to db.")
-            case Failure(ex) => logger.error(s"Killmail insert failed, killId=${rows._1.killId}", ex)
-          }
-          db.run(characterUpsert) onComplete {
-            case Success(x) => logger.info(s"Character(s) ${rows._3.map(_.characterId)} are upserted to DB")
-            case Failure(ex) => logger.error(s"Character upsert failed, killId=${rows._3.map(_.characterId)}", ex)
-          }
-          db.run(corporationUpsert) onComplete {
-            case Success(x) => logger.info(s"Corporation(s) ${rows._6.map(_.corporationId)} are upserted to DB")
-            case Failure(ex) => logger.error(s"Corporation upsert failed, killId=${rows._6.map(_.corporationId)}", ex)
-          }
-
-          Future(rows)
-        }
-        case Failure(ex) => logger.error(s"Failed to build DB transaction, killId=${pkg.killID}", ex)
-      }
   }
 }

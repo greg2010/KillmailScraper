@@ -2,7 +2,7 @@ package SlickCodegen
 
 import slick.codegen._
 import CustomPostgresDriver._
-import org.red.killmailscraper.Env
+import org.red.killmailscraper.dbAgent
 import slick.jdbc.PostgresProfile
 
 import scala.language.postfixOps
@@ -11,7 +11,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 
 
-object CustomCodeGen extends Env {
+object CustomCodeGen {
   def main(args: Array[String]): Unit = {
     Await.ready(
       codegen.map(_.writeToFile(
@@ -24,7 +24,7 @@ object CustomCodeGen extends Env {
       90 seconds
     )
   }
-    private val codegen = db.run {
+    private val codegen = dbAgent.run {
 
       val list = PostgresProfile.defaultTables
 

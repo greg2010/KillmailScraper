@@ -29,6 +29,7 @@ resolvers ++=
     "softprops-maven" at "http://dl.bintray.com/content/softprops/maven",
     Resolver.bintrayRepo("kwark", "maven"))
 
+val circleVersion = "0.7.0"
 val slickVersion = "3.2.0-RC1"
 val http4sVersion = "0.15.5a"
 
@@ -40,13 +41,15 @@ libraryDependencies ++= Seq(
   "com.typesafe.slick" %% "slick-hikaricp" % slickVersion,
   "com.github.tminglei" %% "slick-pg" % "0.15.0-M4",
   "org.postgresql" % "postgresql" % "9.4.1212",
-  "io.spray" %% "spray-json" % "1.3.3",
+  "io.circe" %% "circe-core" % circleVersion,
+  "io.circe" %% "circe-generic" % circleVersion,
+  "io.circe" %% "circe-parser" % circleVersion,
   "org.http4s" %% "http4s-core" % http4sVersion,
   "org.http4s" %% "http4s-blaze-client" % http4sVersion,
   "org.http4s" %% "http4s-argonaut" % http4sVersion,
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-client" % http4sVersion,
-  "enterprises.orbital.eve.esi" % "client" % "1.0.0.20170108"
+  "org.http4s" %% "http4s-circe" % http4sVersion
 )
 
 

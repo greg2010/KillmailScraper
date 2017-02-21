@@ -12,6 +12,7 @@ import org.red.killmailscraper.scraperConfig
 import scala.annotation.tailrec
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
+import scalaz.{-\/, \/-}
 
 
 class ReqisQAPI(queueId: String) extends LazyLogging {
@@ -19,17 +20,37 @@ class ReqisQAPI(queueId: String) extends LazyLogging {
   private val url: Uri = Uri.unsafeFromString("https://redisq.zkillboard.com/listen.php?" +
     s"queueID=${queueId}&" +
     s"ttw=${scraperConfig.getInt("ttw")}")
+  private val httpClient = PooledHttp1Client(maxTotalConnections = 4)
+  private val getKillmail = httpClient.expect[String](url)
 
   def poll(): KillPackage = {
-    val httpClient = SimpleHttp1Client()
-    val getKillmail = httpClient.expect[String](url)
     @tailrec def next(): KillPackage = {
-        val response = getKillmail.unsafePerformSyncFor((scraperConfig.getInt("ttw") + 2).seconds)
-          .parseJson.convertTo[RootPackage]
-          response.`package` match {
+      getKillmail.unsafePerformSyncAttemptFor((scraperConfig.getInt("ttw") + 2).seconds) match {
+        case -\/(e) => {
+          e match {
+            case ex: UnexpectedStatus if ex.status.code == 429 => {
+              val sleepTime: Int = scraperConfig.getInt("ttw") / 2
+              logger.warn(s"Got unexpected status exception, sleeping for ${sleepTime.seconds.toMillis} milliseconds...", ex)
+              Thread.sleep(sleepTime.seconds.toMillis)
+              next()
+            }
+            case ex: DeserializationException => {
+              logger.warn(s"Error deserializing json object, cause: ${ex.cause}" +
+                s" fieldNames: ${ex.fieldNames} message: ${ex.msg}")
+              next()
+            }
+            case ex if NonFatal(e) => {
+              logger.error(s"General run exception", ex)
+              next()
+            }
+          }
+        }
+        case \/-(response) => response
+          .parseJson.convertTo[RootPackage].`package` match {
           case Some(x) => x
           case None => next()
         }
+      }
     }
     next()
   }

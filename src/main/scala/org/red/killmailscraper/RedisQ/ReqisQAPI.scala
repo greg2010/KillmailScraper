@@ -20,7 +20,7 @@ class ReqisQAPI(queueId: String) extends LazyLogging {
   private val url: Uri = Uri.unsafeFromString("https://redisq.zkillboard.com/listen.php?" +
     s"queueID=${queueId}&" +
     s"ttw=${scraperConfig.getInt("ttw")}")
-  private val httpClient = PooledHttp1Client(maxTotalConnections = 4)
+  private val httpClient = SimpleHttp1Client()
   private val getKillmail = httpClient.expect[String](url)
 
   def poll(): KillPackage = {

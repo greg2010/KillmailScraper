@@ -1,7 +1,5 @@
 package org.red.killmailscraper.RedisQ
 
-import spray.json._
-
 object RedisQSchema {
 
   case class RootPackage(`package`: Option[KillPackage])
@@ -52,7 +50,7 @@ object RedisQSchema {
                  points: Long)
 
 
-  object RedisQJsonDeserializer extends DefaultJsonProtocol {
+  /*object RedisQJsonDeserializer extends DefaultJsonProtocol {
     implicit val rootPackage: JsonFormat[RootPackage] = lazyFormat(jsonFormat1(RootPackage))
     implicit val killPackage: JsonFormat[KillPackage] = lazyFormat(jsonFormat3(KillPackage))
     implicit val killmail: JsonFormat[Killmail] = lazyFormat(jsonFormat6(Killmail))
@@ -64,5 +62,5 @@ object RedisQSchema {
     implicit val item: JsonFormat[Item] = lazyFormat(jsonFormat3(Item))
     implicit val victim: JsonFormat[Victim] = lazyFormat(jsonFormat7(Victim))
     implicit val zkb: JsonFormat[Zkb] = lazyFormat(jsonFormat4(Zkb))
-  }
+  }*/
 }

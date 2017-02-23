@@ -50,7 +50,8 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-argonaut" % http4sVersion,
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-client" % http4sVersion,
-  "org.http4s" %% "http4s-circe" % http4sVersion
+  "org.http4s" %% "http4s-circe" % http4sVersion,
+  "org.red" %% "zkb4s" % "1.0"
 )
 
 

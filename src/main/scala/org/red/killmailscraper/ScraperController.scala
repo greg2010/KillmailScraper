@@ -2,8 +2,10 @@ package org.red.killmailscraper
 
 import com.typesafe.scalalogging.LazyLogging
 import org.http4s.client.UnexpectedStatus
-import org.red.killmailscraper.RedisQ.RedisQSchema.KillPackage
+import org.http4s.client.blaze.SimpleHttp1Client
 import org.red.killmailscraper.db.DBController
+import org.red.zkb4s.RedisQ._
+import org.red.zkb4s.RedisQ.RedisQSchema._
 import spray.json.DeserializationException
 
 import scala.annotation.tailrec
@@ -13,8 +15,8 @@ import scala.concurrent.duration._
 class ScraperController extends LazyLogging {
 
   def run(): Unit = {
-    val redisQApi = new RedisQ.ReqisQAPI(scraperConfig.getString("queueID"))
-
+    val redisQApi = new ReqisQAPI(scraperConfig.getString("queueID"), scraperConfig.getString("ttw").toInt)
+    implicit val c = SimpleHttp1Client()
     @tailrec def iterate(): Unit = {
       val response: KillPackage = redisQApi.poll()
       DBController.pushToDB(response)

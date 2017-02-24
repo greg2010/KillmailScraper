@@ -27,8 +27,8 @@ resolvers ++=
   Seq("twitter-repo" at "https://maven.twttr.com",
     "Sonatype" at "https://oss.sonatype.org/content/repositories/releases/",
     "softprops-maven" at "http://dl.bintray.com/content/softprops/maven",
+    "greg2010-sbt-local" at "http://maven.red.greg2010.me/artifactory/sbt-local/",
     Resolver.bintrayRepo("kwark", "maven"))
-
 val slickVersion = "3.2.0-RC1"
 val http4sVersion = "0.15.5a"
 val circeVersion = "0.7.0"
@@ -51,7 +51,7 @@ libraryDependencies ++= Seq(
   "org.http4s" %% "http4s-dsl" % http4sVersion,
   "org.http4s" %% "http4s-client" % http4sVersion,
   "org.http4s" %% "http4s-circe" % http4sVersion,
-  "org.red" %% "zkb4s" % "1.0"
+  "org.red" %% "zkb4s" % "1.0.0"
 )
 
 

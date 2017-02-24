@@ -4,10 +4,10 @@ import java.sql.Timestamp
 import java.text.{ParseException, SimpleDateFormat}
 
 import com.typesafe.scalalogging.LazyLogging
-import org.red.killmailscraper.RedisQ.RedisQSchema._
 import org.red.killmailscraper.db.models.Tables.profile.api._
 import org.red.killmailscraper.db.models.Tables.{AttackersRow, Character, CharacterRow, Corporation, CorporationRow, ItemType, ItemTypeRow, KillmailRow, ZkbMetadata, ZkbMetadataRow, Attackers => DBAttackers, Killmail => DBKillmail}
 import org.red.killmailscraper.dbAgent
+import org.red.zkb4s.RedisQ.RedisQSchema.KillPackage
 import slick.jdbc.TransactionIsolation.ReadCommitted
 
 import scala.concurrent.ExecutionContext.Implicits.global

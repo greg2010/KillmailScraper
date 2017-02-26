@@ -10,8 +10,8 @@ dependencies:
     - ~/.sbt
     - ~/google-cloud-sdk
     - ~/docker
-compile:
-  pre:
+checkout:
+  post:
     - echo $ARTIFACTORY_CREDS | base64 --decode > ${HOME}/.ivy2/.credentials
 test:
   override:

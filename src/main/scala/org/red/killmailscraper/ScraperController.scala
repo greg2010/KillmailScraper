@@ -3,11 +3,8 @@ package org.red.killmailscraper
 import com.typesafe.scalalogging.LazyLogging
 import org.http4s.client.UnexpectedStatus
 import org.http4s.client.blaze.SimpleHttp1Client
-import org.red.killmailscraper.db.DBController
 import org.red.zkb4s.RedisQ._
-import org.red.zkb4s.RedisQ.RedisQSchema._
 
-import scala.annotation.tailrec
 import scala.util.control.NonFatal
 import scala.concurrent.duration._
 import scala.util.Try

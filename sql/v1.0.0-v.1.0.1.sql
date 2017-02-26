@@ -1,7 +1,0 @@
-BEGIN;
-
-  ALTER TABLE attackers ALTER COLUMN damage_done TYPE BIGINT;
-  ALTER TABLE attackers ALTER COLUMN character_id DROP NOT NULL;
-  ALTER TABLE killmail ALTER COLUMN character_id DROP NOT NULL;
-
-COMMIT;

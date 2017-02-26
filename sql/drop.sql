@@ -1,6 +1,0 @@
-DROP TABLE IF EXISTS killmail CASCADE;
-DROP TABLE IF EXISTS attackers;
-DROP TABLE IF EXISTS item_type;
-DROP TABLE IF EXISTS character;
-DROP TABLE IF EXISTS corporation;
-DROP TABLE IF EXISTS zkb_metadata;

@@ -8,9 +8,9 @@ BEGIN;
     kill_time TIMESTAMP NOT NULL,
     attacker_count BIGINT NOT NULL,
     final_blow BIGINT,
-    position_x DOUBLE PRECISION NOT NULL,
-    position_y DOUBLE PRECISION NOT NULL,
-    position_z DOUBLE PRECISION NOT NULL,
+    position_x DOUBLE PRECISION,
+    position_y DOUBLE PRECISION,
+    position_z DOUBLE PRECISION,
     added_at TIMESTAMP NOT NULL,
     PRIMARY KEY (kill_id)
   );
@@ -38,8 +38,7 @@ BEGIN;
 
   CREATE TABLE character(
     character_id BIGINT NOT NULL,
-    corporation_id BIGINT NOT NULL,
-    name VARCHAR(50) NOT NULL,
+    corporation_id BIGINT,
     last_updated TIMESTAMP NOT NULL,
     PRIMARY KEY (character_id)
   );
@@ -48,14 +47,12 @@ BEGIN;
   CREATE TABLE corporation(
     corporation_id BIGINT NOT NULL,
     alliance_id BIGINT,
-    name VARCHAR(50) NOT NULL,
     PRIMARY KEY (corporation_id)
   );
 
 
   CREATE TABLE zkb_metadata(
     kill_id BIGINT NOT NULL,
-    location_id BIGINT NOT NULL,
     hash VARCHAR(50) NOT NULL,
     total_value DOUBLE PRECISION NOT NULL,
     points BIGINT NOT NULL,

@@ -58,27 +58,24 @@ trait Tables {
 
   /** Entity class storing rows of table Character
    *  @param characterId Database column character_id SqlType(int8), PrimaryKey
-   *  @param corporationId Database column corporation_id SqlType(int8)
-   *  @param name Database column name SqlType(varchar), Length(50,true)
+   *  @param corporationId Database column corporation_id SqlType(int8), Default(None)
    *  @param lastUpdated Database column last_updated SqlType(timestamp) */
-  final case class CharacterRow(characterId: Long, corporationId: Long, name: String, lastUpdated: java.sql.Timestamp)
+  final case class CharacterRow(characterId: Long, corporationId: Option[Long] = None, lastUpdated: java.sql.Timestamp)
   /** GetResult implicit for fetching CharacterRow objects using plain SQL queries */
-  implicit def GetResultCharacterRow(implicit e0: GR[Long], e1: GR[String], e2: GR[java.sql.Timestamp]): GR[CharacterRow] = GR{
+  implicit def GetResultCharacterRow(implicit e0: GR[Long], e1: GR[Option[Long]], e2: GR[java.sql.Timestamp]): GR[CharacterRow] = GR{
     prs => import prs._
-    CharacterRow.tupled((<<[Long], <<[Long], <<[String], <<[java.sql.Timestamp]))
+    CharacterRow.tupled((<<[Long], <<?[Long], <<[java.sql.Timestamp]))
   }
   /** Table description of table character. Objects of this class serve as prototypes for rows in queries. */
   class Character(_tableTag: Tag) extends profile.api.Table[CharacterRow](_tableTag, "character") {
-    def * = (characterId, corporationId, name, lastUpdated) <> (CharacterRow.tupled, CharacterRow.unapply)
+    def * = (characterId, corporationId, lastUpdated) <> (CharacterRow.tupled, CharacterRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(characterId), Rep.Some(corporationId), Rep.Some(name), Rep.Some(lastUpdated)).shaped.<>({r=>import r._; _1.map(_=> CharacterRow.tupled((_1.get, _2.get, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(characterId), corporationId, Rep.Some(lastUpdated)).shaped.<>({r=>import r._; _1.map(_=> CharacterRow.tupled((_1.get, _2, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column character_id SqlType(int8), PrimaryKey */
     val characterId: Rep[Long] = column[Long]("character_id", O.PrimaryKey)
-    /** Database column corporation_id SqlType(int8) */
-    val corporationId: Rep[Long] = column[Long]("corporation_id")
-    /** Database column name SqlType(varchar), Length(50,true) */
-    val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
+    /** Database column corporation_id SqlType(int8), Default(None) */
+    val corporationId: Rep[Option[Long]] = column[Option[Long]]("corporation_id", O.Default(None))
     /** Database column last_updated SqlType(timestamp) */
     val lastUpdated: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("last_updated")
   }
@@ -87,26 +84,23 @@ trait Tables {
 
   /** Entity class storing rows of table Corporation
    *  @param corporationId Database column corporation_id SqlType(int8), PrimaryKey
-   *  @param allianceId Database column alliance_id SqlType(int8), Default(None)
-   *  @param name Database column name SqlType(varchar), Length(50,true) */
-  final case class CorporationRow(corporationId: Long, allianceId: Option[Long] = None, name: String)
+   *  @param allianceId Database column alliance_id SqlType(int8), Default(None) */
+  final case class CorporationRow(corporationId: Long, allianceId: Option[Long] = None)
   /** GetResult implicit for fetching CorporationRow objects using plain SQL queries */
-  implicit def GetResultCorporationRow(implicit e0: GR[Long], e1: GR[Option[Long]], e2: GR[String]): GR[CorporationRow] = GR{
+  implicit def GetResultCorporationRow(implicit e0: GR[Long], e1: GR[Option[Long]]): GR[CorporationRow] = GR{
     prs => import prs._
-    CorporationRow.tupled((<<[Long], <<?[Long], <<[String]))
+    CorporationRow.tupled((<<[Long], <<?[Long]))
   }
   /** Table description of table corporation. Objects of this class serve as prototypes for rows in queries. */
   class Corporation(_tableTag: Tag) extends profile.api.Table[CorporationRow](_tableTag, "corporation") {
-    def * = (corporationId, allianceId, name) <> (CorporationRow.tupled, CorporationRow.unapply)
+    def * = (corporationId, allianceId) <> (CorporationRow.tupled, CorporationRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(corporationId), allianceId, Rep.Some(name)).shaped.<>({r=>import r._; _1.map(_=> CorporationRow.tupled((_1.get, _2, _3.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(corporationId), allianceId).shaped.<>({r=>import r._; _1.map(_=> CorporationRow.tupled((_1.get, _2)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column corporation_id SqlType(int8), PrimaryKey */
     val corporationId: Rep[Long] = column[Long]("corporation_id", O.PrimaryKey)
     /** Database column alliance_id SqlType(int8), Default(None) */
     val allianceId: Rep[Option[Long]] = column[Option[Long]]("alliance_id", O.Default(None))
-    /** Database column name SqlType(varchar), Length(50,true) */
-    val name: Rep[String] = column[String]("name", O.Length(50,varying=true))
   }
   /** Collection-like TableQuery object for table Corporation */
   lazy val Corporation = new TableQuery(tag => new Corporation(tag))
@@ -151,21 +145,21 @@ trait Tables {
    *  @param killTime Database column kill_time SqlType(timestamp)
    *  @param attackerCount Database column attacker_count SqlType(int8)
    *  @param finalBlow Database column final_blow SqlType(int8), Default(None)
-   *  @param positionX Database column position_x SqlType(float8)
-   *  @param positionY Database column position_y SqlType(float8)
-   *  @param positionZ Database column position_z SqlType(float8)
+   *  @param positionX Database column position_x SqlType(float8), Default(None)
+   *  @param positionY Database column position_y SqlType(float8), Default(None)
+   *  @param positionZ Database column position_z SqlType(float8), Default(None)
    *  @param addedAt Database column added_at SqlType(timestamp) */
-  final case class KillmailRow(killId: Long, shipId: Long, characterId: Option[Long] = None, solarsystemId: Long, killTime: java.sql.Timestamp, attackerCount: Long, finalBlow: Option[Long] = None, positionX: Double, positionY: Double, positionZ: Double, addedAt: java.sql.Timestamp)
+  final case class KillmailRow(killId: Long, shipId: Long, characterId: Option[Long] = None, solarsystemId: Long, killTime: java.sql.Timestamp, attackerCount: Long, finalBlow: Option[Long] = None, positionX: Option[Double] = None, positionY: Option[Double] = None, positionZ: Option[Double] = None, addedAt: java.sql.Timestamp)
   /** GetResult implicit for fetching KillmailRow objects using plain SQL queries */
-  implicit def GetResultKillmailRow(implicit e0: GR[Long], e1: GR[Option[Long]], e2: GR[java.sql.Timestamp], e3: GR[Double]): GR[KillmailRow] = GR{
+  implicit def GetResultKillmailRow(implicit e0: GR[Long], e1: GR[Option[Long]], e2: GR[java.sql.Timestamp], e3: GR[Option[Double]]): GR[KillmailRow] = GR{
     prs => import prs._
-    KillmailRow.tupled((<<[Long], <<[Long], <<?[Long], <<[Long], <<[java.sql.Timestamp], <<[Long], <<?[Long], <<[Double], <<[Double], <<[Double], <<[java.sql.Timestamp]))
+    KillmailRow.tupled((<<[Long], <<[Long], <<?[Long], <<[Long], <<[java.sql.Timestamp], <<[Long], <<?[Long], <<?[Double], <<?[Double], <<?[Double], <<[java.sql.Timestamp]))
   }
   /** Table description of table killmail. Objects of this class serve as prototypes for rows in queries. */
   class Killmail(_tableTag: Tag) extends profile.api.Table[KillmailRow](_tableTag, "killmail") {
     def * = (killId, shipId, characterId, solarsystemId, killTime, attackerCount, finalBlow, positionX, positionY, positionZ, addedAt) <> (KillmailRow.tupled, KillmailRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(killId), Rep.Some(shipId), characterId, Rep.Some(solarsystemId), Rep.Some(killTime), Rep.Some(attackerCount), finalBlow, Rep.Some(positionX), Rep.Some(positionY), Rep.Some(positionZ), Rep.Some(addedAt)).shaped.<>({r=>import r._; _1.map(_=> KillmailRow.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7, _8.get, _9.get, _10.get, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(killId), Rep.Some(shipId), characterId, Rep.Some(solarsystemId), Rep.Some(killTime), Rep.Some(attackerCount), finalBlow, positionX, positionY, positionZ, Rep.Some(addedAt)).shaped.<>({r=>import r._; _1.map(_=> KillmailRow.tupled((_1.get, _2.get, _3, _4.get, _5.get, _6.get, _7, _8, _9, _10, _11.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column kill_id SqlType(int8), PrimaryKey */
     val killId: Rep[Long] = column[Long]("kill_id", O.PrimaryKey)
@@ -181,12 +175,12 @@ trait Tables {
     val attackerCount: Rep[Long] = column[Long]("attacker_count")
     /** Database column final_blow SqlType(int8), Default(None) */
     val finalBlow: Rep[Option[Long]] = column[Option[Long]]("final_blow", O.Default(None))
-    /** Database column position_x SqlType(float8) */
-    val positionX: Rep[Double] = column[Double]("position_x")
-    /** Database column position_y SqlType(float8) */
-    val positionY: Rep[Double] = column[Double]("position_y")
-    /** Database column position_z SqlType(float8) */
-    val positionZ: Rep[Double] = column[Double]("position_z")
+    /** Database column position_x SqlType(float8), Default(None) */
+    val positionX: Rep[Option[Double]] = column[Option[Double]]("position_x", O.Default(None))
+    /** Database column position_y SqlType(float8), Default(None) */
+    val positionY: Rep[Option[Double]] = column[Option[Double]]("position_y", O.Default(None))
+    /** Database column position_z SqlType(float8), Default(None) */
+    val positionZ: Rep[Option[Double]] = column[Option[Double]]("position_z", O.Default(None))
     /** Database column added_at SqlType(timestamp) */
     val addedAt: Rep[java.sql.Timestamp] = column[java.sql.Timestamp]("added_at")
   }
@@ -195,26 +189,23 @@ trait Tables {
 
   /** Entity class storing rows of table ZkbMetadata
    *  @param killId Database column kill_id SqlType(int8), PrimaryKey
-   *  @param locationId Database column location_id SqlType(int8)
    *  @param hash Database column hash SqlType(varchar), Length(50,true)
    *  @param totalValue Database column total_value SqlType(float8)
    *  @param points Database column points SqlType(int8) */
-  final case class ZkbMetadataRow(killId: Long, locationId: Long, hash: String, totalValue: Double, points: Long)
+  final case class ZkbMetadataRow(killId: Long, hash: String, totalValue: Double, points: Long)
   /** GetResult implicit for fetching ZkbMetadataRow objects using plain SQL queries */
   implicit def GetResultZkbMetadataRow(implicit e0: GR[Long], e1: GR[String], e2: GR[Double]): GR[ZkbMetadataRow] = GR{
     prs => import prs._
-    ZkbMetadataRow.tupled((<<[Long], <<[Long], <<[String], <<[Double], <<[Long]))
+    ZkbMetadataRow.tupled((<<[Long], <<[String], <<[Double], <<[Long]))
   }
   /** Table description of table zkb_metadata. Objects of this class serve as prototypes for rows in queries. */
   class ZkbMetadata(_tableTag: Tag) extends profile.api.Table[ZkbMetadataRow](_tableTag, "zkb_metadata") {
-    def * = (killId, locationId, hash, totalValue, points) <> (ZkbMetadataRow.tupled, ZkbMetadataRow.unapply)
+    def * = (killId, hash, totalValue, points) <> (ZkbMetadataRow.tupled, ZkbMetadataRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(killId), Rep.Some(locationId), Rep.Some(hash), Rep.Some(totalValue), Rep.Some(points)).shaped.<>({r=>import r._; _1.map(_=> ZkbMetadataRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(killId), Rep.Some(hash), Rep.Some(totalValue), Rep.Some(points)).shaped.<>({r=>import r._; _1.map(_=> ZkbMetadataRow.tupled((_1.get, _2.get, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column kill_id SqlType(int8), PrimaryKey */
     val killId: Rep[Long] = column[Long]("kill_id", O.PrimaryKey)
-    /** Database column location_id SqlType(int8) */
-    val locationId: Rep[Long] = column[Long]("location_id")
     /** Database column hash SqlType(varchar), Length(50,true) */
     val hash: Rep[String] = column[String]("hash", O.Length(50,varying=true))
     /** Database column total_value SqlType(float8) */

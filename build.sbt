@@ -27,7 +27,10 @@ resolvers ++=
   Seq("twitter-repo" at "https://maven.twttr.com",
     "Sonatype" at "https://oss.sonatype.org/content/repositories/releases/",
     "softprops-maven" at "http://dl.bintray.com/content/softprops/maven",
-    "greg2010-sbt-local" at "http://maven.red.greg2010.me/artifactory/sbt-local/")
+    "Artifactory Realm" at "http://maven.red.greg2010.me/artifactory/sbt-local/")
+
+credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
+
 val slickVersion = "3.2.0-RC1"
 val http4sVersion = "0.15.5a"
 val circeVersion = "0.7.0"

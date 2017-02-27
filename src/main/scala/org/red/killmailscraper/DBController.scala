@@ -27,13 +27,16 @@ object DBController extends LazyLogging {
         val itemRow = getItemRowList(pkg)
         val zkbRow = getZkbMetadataRow(pkg)
 
-        val characterUpsert = DBIO.sequence(chRow map { charRow =>
+        val chRowQuery = prepareCharacterUpsert(chRow)
+        val corpRowQuery = prepareCorporationUpsert(corpRow)
+
+        /*val characterUpsert = DBIO.sequence(chRow map { charRow =>
           Character.insertOrUpdate(charRow)
         })
 
         val corporationUpsert = DBIO.sequence(corpRow map { corpRow =>
           Corporation.insertOrUpdate(corpRow)
-        })
+        })*/
 
         logger.debug(s"Building db objects for km #${kmRow.killId} is complete. Trying to push to db.")
 
@@ -49,11 +52,11 @@ object DBController extends LazyLogging {
             case Success(x) => logger.info(s"Killmail with killId=${kmRow.killId} was succesfully pushed to db.")
             case Failure(ex) => logger.error(s"Killmail insert failed, killId=${kmRow.killId}", ex)
           }
-          dbAgent.run(characterUpsert) onComplete {
+          dbAgent.run(chRowQuery) onComplete {
             case Success(x) => logger.info(s"Character(s) ${chRow.map(_.characterId)} are upserted to DB")
             case Failure(ex) => logger.error(s"Character upsert failed, killId=${chRow.map(_.characterId)}", ex)
           }
-          dbAgent.run(corporationUpsert) onComplete {
+          dbAgent.run(corpRowQuery) onComplete {
             case Success(x) => logger.info(s"Corporation(s) ${corpRow.map(_.corporationId)} are upserted to DB")
             case Failure(ex) => logger.error(s"Corporation upsert failed, killId=${corpRow.map(_.corporationId)}", ex)
           }
@@ -61,6 +64,57 @@ object DBController extends LazyLogging {
       } catch {
         case e: Throwable if NonFatal(e) => logger.error(s"Failed to build DB transaction, killId=${pkg.killId}", e)
       }
+    }
+  }
+
+  // Using raw SQL for batch upserts since Slick cannot handle it just yet
+  private def prepareCharacterUpsert(chRow: Seq[CharacterRow]): SimpleDBIO[Array[Int]] = {
+    SimpleDBIO[Array[Int]] { session =>
+      val sql  =
+        """INSERT INTO character (character_id,corporation_id,last_updated) VALUES (?, ?, ?)
+          | ON CONFLICT (character_id) DO UPDATE SET corporation_id = ?, last_updated = ?;""".stripMargin
+      val statement = session.connection.prepareStatement(sql)
+      chRow.foreach { row =>
+        statement.setLong(1, row.characterId)
+        row.corporationId match {
+          case Some(id) => {
+            statement.setLong(2, id)
+            statement.setLong(4, id)
+          }
+          case None => {
+            statement.setNull(2, java.sql.Types.BIGINT)
+            statement.setNull(4, java.sql.Types.BIGINT)
+          }
+        }
+        statement.setTimestamp(3, row.lastUpdated)
+        statement.setTimestamp(5, row.lastUpdated)
+        statement.addBatch()
+      }
+      statement.executeBatch()
+    }
+  }
+
+  private def prepareCorporationUpsert(corpRow: Seq[CorporationRow]): SimpleDBIO[Array[Int]] = {
+    SimpleDBIO[Array[Int]] { session =>
+      val sql  =
+        """INSERT INTO corporation (corporation_id,alliance_id) VALUES (?, ?)
+          | ON CONFLICT (corporation_id) DO UPDATE SET alliance_id = ?;""".stripMargin
+      val statement = session.connection.prepareStatement(sql)
+      corpRow.foreach { row =>
+        statement.setLong(1, row.corporationId)
+        row.allianceId match {
+          case Some(id) => {
+            statement.setLong(2, id)
+            statement.setLong(3, id)
+          }
+          case None => {
+            statement.setNull(2, java.sql.Types.BIGINT)
+            statement.setNull(3, java.sql.Types.BIGINT)
+          }
+        }
+        statement.addBatch()
+      }
+      statement.executeBatch()
     }
   }
 

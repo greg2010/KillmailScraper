@@ -27,8 +27,8 @@ object DBController extends LazyLogging {
         val itemRow = getItemRowList(pkg)
         val zkbRow = getZkbMetadataRow(pkg)
 
-        val chRowQuery = prepareCharacterUpsert(chRow)
-        val corpRowQuery = prepareCorporationUpsert(corpRow)
+        val chRowQuery = prepareCharacterUpsert(chRow).transactionally
+        val corpRowQuery = prepareCorporationUpsert(corpRow).transactionally
 
         /*val characterUpsert = DBIO.sequence(chRow map { charRow =>
           Character.insertOrUpdate(charRow)

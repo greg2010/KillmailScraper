@@ -10,29 +10,23 @@ import org.red.zkb4s.schema.CommonSchemas.{Killmail => APIKillmail}
 import slick.jdbc.TransactionIsolation.ReadCommitted
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.blocking
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 
 object DBController extends LazyLogging {
 
   def pushToDB(pkg: APIKillmail): Unit = {
-    val kmRow = getKillmailRow(pkg)
-    val atRow = getAttackersRowList(pkg)
-    val chRow = getCharacterRowList(pkg)
-    val corpRow = getCorporationRowList(pkg)
-    val itemRow = getItemRowList(pkg)
-    val zkbRow = getZkbMetadataRow(pkg)
-
-    (for {
-      killmailRow <- kmRow
-      attackersRowList <- atRow
-      characterRowList <- chRow
-      corporationRowList <- corpRow
-      itemRowList <- itemRow
-      zkbMetadataRow <- zkbRow
-    } yield (killmailRow, attackersRowList, characterRowList, itemRowList, zkbMetadataRow, corporationRowList))
-      .onComplete {
+    Future {
+      (for {
+        killmailRow <- getKillmailRow(pkg)
+        attackersRowList <- getAttackersRowList(pkg)
+        characterRowList <- getCharacterRowList(pkg)
+        corporationRowList <- getCorporationRowList(pkg)
+        itemRowList <- getItemRowList(pkg)
+        zkbMetadataRow <- getZkbMetadataRow(pkg)
+      } yield (killmailRow, attackersRowList, characterRowList, itemRowList, zkbMetadataRow, corporationRowList)) match {
         case Success(rows) => {
           val characterUpsert = DBIO.sequence(rows._3 map { charRow =>
             Character.insertOrUpdate(charRow)
@@ -51,28 +45,28 @@ object DBController extends LazyLogging {
             insertIntoZkbAction <- ZkbMetadata += rows._5
           } yield ()).transactionally.withTransactionIsolation(ReadCommitted)
 
-
-          dbAgent.run(query) onComplete {
-            case Success(x) => logger.info(s"Killmail with killId=${rows._1.killId} was succesfully pushed to db.")
-            case Failure(ex) => logger.error(s"Killmail insert failed, killId=${rows._1.killId}", ex)
+          blocking {
+            dbAgent.run(query) onComplete {
+              case Success(x) => logger.info(s"Killmail with killId=${rows._1.killId} was succesfully pushed to db.")
+              case Failure(ex) => logger.error(s"Killmail insert failed, killId=${rows._1.killId}", ex)
+            }
+            dbAgent.run(characterUpsert) onComplete {
+              case Success(x) => logger.info(s"Character(s) ${rows._3.map(_.characterId)} are upserted to DB")
+              case Failure(ex) => logger.error(s"Character upsert failed, killId=${rows._3.map(_.characterId)}", ex)
+            }
+            dbAgent.run(corporationUpsert) onComplete {
+              case Success(x) => logger.info(s"Corporation(s) ${rows._6.map(_.corporationId)} are upserted to DB")
+              case Failure(ex) => logger.error(s"Corporation upsert failed, killId=${rows._6.map(_.corporationId)}", ex)
+            }
           }
-          dbAgent.run(characterUpsert) onComplete {
-            case Success(x) => logger.info(s"Character(s) ${rows._3.map(_.characterId)} are upserted to DB")
-            case Failure(ex) => logger.error(s"Character upsert failed, killId=${rows._3.map(_.characterId)}", ex)
-          }
-          dbAgent.run(corporationUpsert) onComplete {
-            case Success(x) => logger.info(s"Corporation(s) ${rows._6.map(_.corporationId)} are upserted to DB")
-            case Failure(ex) => logger.error(s"Corporation upsert failed, killId=${rows._6.map(_.corporationId)}", ex)
-          }
-
-          Future(rows)
         }
         case Failure(ex) => logger.error(s"Failed to build DB transaction, killId=${pkg.killId}", ex)
       }
+    }
   }
 
-  private def getKillmailRow(pkg: APIKillmail): Future[KillmailRow] = {
-    val f = Future {
+  private def getKillmailRow(pkg: APIKillmail): Try[KillmailRow] = {
+    Try {
       val timestamp: Timestamp = new Timestamp(pkg.killTime.getTime)
       val now: Timestamp = new Timestamp(System.currentTimeMillis())
       val finalBlowId: Option[Long] = pkg.attackers.find(_.finalBlow) match {
@@ -92,25 +86,18 @@ object DBController extends LazyLogging {
         killTime = timestamp,
         attackerCount = pkg.attackers.length.toLong,
         finalBlow = finalBlowId,
-        positionX = position._1, // FIX: after schemas changed
+        positionX = position._1,
         positionY = position._2,
         positionZ = position._3,
         addedAt = now)
     }
-
-    f onComplete {
-      case Success(x) => x
-      case Failure(ex) => logger.error("General exception in getKillmailsRow", ex)
-    }
-    f
   }
 
-  private def getAttackersRowList(pkg: APIKillmail): Future[Seq[AttackersRow]] = {
+  private def getAttackersRowList(pkg: APIKillmail): Try[Seq[AttackersRow]] = {
 
-    val f = Future {
+    Try {
       pkg.attackers map { attacker =>
         val weaponId: Option[Long] = attacker.weaponType match {
-          // Spicy pattern matching
           case Some(weapon) => Some(weapon)
           case None => attacker.shipId
         }
@@ -123,20 +110,14 @@ object DBController extends LazyLogging {
           securityStatus = attacker.securityStatus)
       }
     }
-
-    f onComplete {
-      case Success(x) => x
-      case Failure(ex) => logger.error("General exception in getAttackersRowList", ex)
-    }
-    f
   }
 
-  private def getCharacterRowList(pkg: APIKillmail): Future[Seq[CharacterRow]] = {
-    val f = Future {
+  private def getCharacterRowList(pkg: APIKillmail): Try[Seq[CharacterRow]] = {
+    Try {
       val now: Timestamp = new Timestamp(System.currentTimeMillis())
 
       val charList = pkg.attackers.filter(_.character.characterId.isDefined) map { attacker =>
-        CharacterRow(characterId = attacker.character.characterId.get, // Drop not null for corp, drop name
+        CharacterRow(characterId = attacker.character.characterId.get,
           corporationId = attacker.character.corporationId,
           lastUpdated = now)
       }
@@ -147,35 +128,11 @@ object DBController extends LazyLogging {
         case None => charList
       }
     }
-
-    f onComplete {
-      case Success(x) => x
-      case Failure(ex) => logger.error("General exception in getAttackersRowList", ex)
-    }
-    f
   }
 
-  private def getCorporationRowList(pkg: APIKillmail): Future[Seq[CorporationRow]] = {
+  private def getCorporationRowList(pkg: APIKillmail): Try[Seq[CorporationRow]] = {
 
-    /*def getCorporationName(corporation: EntityDef): String = {
-      try {
-        corporation.name match {
-          case Some(name) => name
-          case None => {
-            logger.info(s"Missing corporation name for corporation=${corporation.id} killId=${pkg.killmail.killID}")
-            corporationApi
-              .getCorporationsNames(List[java.lang.Long](corporation.id.toLong).asJava, config.getString("eveServerName"))
-              .get(0).getCorporationName
-          }
-        }
-      } catch {
-        case e if NonFatal(e) =>
-          logger.error("Failed to query ESI API to get missing corporation name", e)
-          throw e
-      }
-    }*/
-
-    val f = Future {
+    Try {
       val rows = pkg.attackers.filter(_.character.corporationId.isDefined).map { attacker =>
         CorporationRow(corporationId = attacker.character.corporationId.get, allianceId = attacker.character.allianceId)
       }
@@ -184,16 +141,10 @@ object DBController extends LazyLogging {
         case None => rows
       }
     }
-
-    f onComplete {
-      case Success(x) => x
-      case Failure(ex) => logger.error("General exception in getCorporationRowList", ex)
-    }
-    f
   }
 
-  def getItemRowList(pkg: APIKillmail): Future[Option[Seq[ItemTypeRow]]] = {
-    val f = Future {
+  def getItemRowList(pkg: APIKillmail): Try[Option[Seq[ItemTypeRow]]] = {
+    Try {
       pkg.victim.items.length match {
         case x if x > 0 => {
           // TODO: rename(?) itemType
@@ -209,24 +160,12 @@ object DBController extends LazyLogging {
         case _ => None
       }
     }
-
-    f onComplete {
-      case Success(x) => x
-      case Failure(ex) => logger.error("General exception in getItemRowList", ex)
-    }
-    f
   }
 
-  private def getZkbMetadataRow(pkg: APIKillmail): Future[ZkbMetadataRow] = {
-    val f = Future { // Drop locationId
+  private def getZkbMetadataRow(pkg: APIKillmail): Try[ZkbMetadataRow] = {
+    Try {
       ZkbMetadataRow(killId = pkg.killId, hash = pkg.zkbMetadata.hash,
         totalValue = pkg.zkbMetadata.totalValue, points = pkg.zkbMetadata.points)
     }
-
-    f onComplete {
-      case Success(x) => x
-      case Failure(ex) => logger.error("General exception in getZkbMetadataRow", ex)
-    }
-    f
   }
 }

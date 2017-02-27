@@ -19,7 +19,10 @@ class ScraperController extends LazyLogging {
       scraperConfig.getString("ttw").toInt.seconds,
       scraperConfig.getString("userAgent"))
 
-    implicit val c = PooledHttp1Client(config = BlazeClientConfig.defaultConfig.copy(sslContext = Some(SSLContext.getDefault), endpointAuthentication = true))
+    implicit val c = PooledHttp1Client(
+      config = BlazeClientConfig.defaultConfig.copy(
+        sslContext = Some(SSLContext.getDefault),
+        endpointAuthentication = true))
     while (true) {
       Try {
         redisQApi.stream().foreach { response =>

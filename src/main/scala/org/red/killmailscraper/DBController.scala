@@ -6,7 +6,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.red.db.dbAgent
 import org.red.db.models.Tables.profile.api._
 import org.red.db.models.Tables.{AttackersRow, Character, CharacterRow, Corporation, CorporationRow, ItemType, ItemTypeRow, KillmailRow, ZkbMetadata, ZkbMetadataRow, Attackers => DBAttackers, Killmail => DBKillmail}
-import org.red.zkb4s.CommonSchemas.{Killmail => APIKillmail}
+import org.red.zkb4s.schema.CommonSchemas.{Killmail => APIKillmail}
 import slick.jdbc.TransactionIsolation.ReadCommitted
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -176,7 +176,7 @@ object DBController extends LazyLogging {
     }*/
 
     val f = Future {
-      val rows = pkg.attackers.filter(_.character.corporationId.isDefined).map { attacker => // Drop name
+      val rows = pkg.attackers.filter(_.character.corporationId.isDefined).map { attacker =>
         CorporationRow(corporationId = attacker.character.corporationId.get, allianceId = attacker.character.allianceId)
       }
       pkg.victim.character.corporationId match {

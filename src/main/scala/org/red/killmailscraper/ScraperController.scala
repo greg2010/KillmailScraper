@@ -4,7 +4,7 @@ import javax.net.ssl.SSLContext
 
 import com.typesafe.scalalogging.LazyLogging
 import org.http4s.InvalidMessageBodyFailure
-import org.http4s.client.blaze.{BlazeClientConfig, PooledHttp1Client}
+import org.http4s.client.blaze.{BlazeClientConfig, SimpleHttp1Client}
 import org.red.zkb4s.RedisQ._
 
 import scala.util.control.NonFatal
@@ -17,7 +17,7 @@ class ScraperController extends LazyLogging {
       scraperConfig.getString("ttw").toInt.seconds,
       scraperConfig.getString("userAgent"))
 
-    implicit val c = PooledHttp1Client(
+    implicit val c = SimpleHttp1Client(
       config = BlazeClientConfig.defaultConfig.copy(
         sslContext = Some(SSLContext.getDefault),
         endpointAuthentication = true))

@@ -38,6 +38,6 @@ val circeVersion = "0.7.0"
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
   "ch.qos.logback" % "logback-classic" % "1.1.2",
-  "org.red" %% "zkb4s" % "1.0.3",
+  "org.red" %% "zkb4s" % "1.0.4",
   "org.red" %% "reddb" % "1.0.1-SNAPSHOT"
 )

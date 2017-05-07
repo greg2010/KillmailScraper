@@ -25,4 +25,4 @@ test:
     - docker tag red/killmailscraper gcr.io/$GCLOUD_PROJECT/killmailscraper:${CIRCLE_BRANCH}_${CIRCLE_SHA1:0:7}
     - docker tag red/killmailscraper gcr.io/$GCLOUD_PROJECT/killmailscraper:${CIRCLE_BRANCH}_latest
     - docker tag red/killmailscraper gcr.io/$GCLOUD_PROJECT/killmailscraper:latest
-    - gcloud docker push gcr.io/$GCLOUD_PROJECT/killmailscraper
+    - gcloud docker -- push gcr.io/$GCLOUD_PROJECT/killmailscraper

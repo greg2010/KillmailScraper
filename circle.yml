@@ -12,6 +12,7 @@ dependencies:
     - ~/docker
 checkout:
   post:
+    - mkdir ${HOME}/.ivy2 -p
     - echo $ARTIFACTORY_CREDS | base64 --decode > ${HOME}/.ivy2/.credentials
 test:
   override:

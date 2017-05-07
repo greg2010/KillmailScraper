@@ -7,6 +7,7 @@ COPY ./target/scala-2.12/killmailscraper.jar killmailscraper.jar
 
 ADD killmailscraper.sv.conf /etc/supervisor/conf.d/
 
-RUN apt-get update && apt-get -y -q install supervisor
+RUN apk update
+RUN apk add supervisor
 
 CMD ["/usr/bin/supervisord"]

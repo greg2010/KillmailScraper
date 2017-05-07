@@ -21,7 +21,6 @@ test:
     - gcloud auth activate-service-account --key-file ${HOME}/gcloud-service-key.json
     - gcloud config set project $GCLOUD_PROJECT
     - gcloud docker -a
-    - gcloud docker ps
     - docker build -t red/killmailscraper .
     - docker tag red/killmailscraper gcr.io/$GCLOUD_PROJECT/killmailscraper:${CIRCLE_BRANCH}_${CIRCLE_SHA1:0:7}
     - docker tag red/killmailscraper gcr.io/$GCLOUD_PROJECT/killmailscraper:${CIRCLE_BRANCH}_latest

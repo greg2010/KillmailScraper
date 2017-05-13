@@ -4,8 +4,8 @@ import java.sql.Timestamp
 
 import com.typesafe.scalalogging.LazyLogging
 import org.red.db.dbAgent
-import org.red.db.models.Tables.profile.api._
-import org.red.db.models.Tables.{AttackersRow, Character, CharacterRow, Corporation, CorporationRow, ItemType, ItemTypeRow, KillmailRow, ZkbMetadata, ZkbMetadataRow, Attackers => DBAttackers, Killmail => DBKillmail}
+import org.red.db.models.KillmailScraper.profile.api._
+import org.red.db.models.KillmailScraper.{AttackersRow, Character, CharacterRow, Corporation, CorporationRow, ItemType, ItemTypeRow, KillmailRow, ZkbMetadata, ZkbMetadataRow, Attackers => DBAttackers, Killmail => DBKillmail}
 import org.red.zkb4s.schema.CommonSchemas.{Killmail => APIKillmail}
 import slick.jdbc.TransactionIsolation.ReadCommitted
 
@@ -71,7 +71,7 @@ object DBController extends LazyLogging {
   private def prepareCharacterUpsert(chRow: Seq[CharacterRow]): SimpleDBIO[Array[Int]] = {
     SimpleDBIO[Array[Int]] { session =>
       val sql  =
-        """INSERT INTO character (character_id,corporation_id,last_updated) VALUES (?, ?, ?)
+        """INSERT INTO killmail_scraper.character (character_id,corporation_id,last_updated) VALUES (?, ?, ?)
           | ON CONFLICT (character_id) DO UPDATE SET corporation_id = ?, last_updated = ?;""".stripMargin
       val statement = session.connection.prepareStatement(sql)
       chRow.foreach { row =>
@@ -97,7 +97,7 @@ object DBController extends LazyLogging {
   private def prepareCorporationUpsert(corpRow: Seq[CorporationRow]): SimpleDBIO[Array[Int]] = {
     SimpleDBIO[Array[Int]] { session =>
       val sql  =
-        """INSERT INTO corporation (corporation_id,alliance_id) VALUES (?, ?)
+        """INSERT INTO killmail_scraper.corporation (corporation_id,alliance_id) VALUES (?, ?)
           | ON CONFLICT (corporation_id) DO UPDATE SET alliance_id = ?;""".stripMargin
       val statement = session.connection.prepareStatement(sql)
       corpRow.foreach { row =>

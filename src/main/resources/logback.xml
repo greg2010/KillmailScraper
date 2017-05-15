@@ -4,7 +4,19 @@
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
+    <appender name="GRAYLOG" class="com.github.pukkaone.gelf.logback.GelfAppender">
+        <graylogHost>graylog</graylogHost>
+        <levelIncluded>true</levelIncluded>
+        <locationIncluded>false</locationIncluded>
+        <loggerIncluded>true</loggerIncluded>
+        <markerIncluded>false</markerIncluded>
+        <mdcIncluded>false</mdcIncluded>
+        <threadIncluded>false</threadIncluded>
+        <facility>gelf-java</facility>
+        <additionalField>application=scraper</additionalField>
+    </appender>
     <root level="info">
+        <appender-ref ref="GRAYLOG" />
         <appender-ref ref="STDOUT" />
     </root>
 </configuration>

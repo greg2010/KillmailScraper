@@ -35,6 +35,7 @@ credentials += Credentials(Path.userHome / ".ivy2" / ".credentials")
 libraryDependencies ++= Seq(
   "com.typesafe.scala-logging" %% "scala-logging" % "3.5.0",
   "ch.qos.logback" % "logback-classic" % "1.1.2",
+  "com.github.pukkaone" % "logback-gelf" % "1.1.10",
   "org.red" %% "zkb4s" % "1.0.5",
   "org.red" %% "reddb" % "1.0.2-SNAPSHOT"
 )

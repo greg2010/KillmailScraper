@@ -5,7 +5,7 @@
         </encoder>
     </appender>
     <appender name="GRAYLOG" class="com.github.pukkaone.gelf.logback.GelfAppender">
-        <graylogHost>tcp://graylog.red.greg2010.me</graylogHost>
+        <graylogHost>graylog.red.greg2010.me</graylogHost>
         <levelIncluded>true</levelIncluded>
         <locationIncluded>false</locationIncluded>
         <loggerIncluded>true</loggerIncluded>
